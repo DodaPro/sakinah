@@ -1,0 +1,1 @@
+try{var _u=JSON.parse(localStorage.getItem('planner-ui-v1')||'null');document.documentElement.setAttribute('data-ui',_u&&_u.theme?_u.theme:'auto')}catch(e){document.documentElement.setAttribute('data-ui','auto')}
