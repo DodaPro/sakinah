@@ -44,6 +44,18 @@ import {
 } from "@/lib/storage";
 import type { AppSettings, Logs, PromptedMap } from "@/lib/storage";
 import { useAdhanPlayer } from "@/lib/use-adhan";
+import {
+  XP_PER_BADGE,
+  loadBadgeXp,
+  loadMainTab,
+  plannerMetrics,
+  saveBadgeXp,
+  saveMainTab,
+  studyXp,
+  tasksXp,
+  usePlanner,
+} from "@/lib/planner";
+import type { PlannerState } from "@/lib/planner";
 import Fireworks from "./fireworks";
 import PrayerModal from "./prayer-modal";
 import CongratsOverlay from "./congrats-overlay";
@@ -51,6 +63,8 @@ import SettingsPanel from "./settings-panel";
 import QiblaCompass from "./qibla-compass";
 import TasbihCard from "./tasbih-card";
 import StatsSection from "./stats-section";
+import TasksSection from "./tasks-section";
+import TimerSection from "./timer-section";
 
 const PRAYER_EMOJI: Record<PrayerKey | "sunrise", string> = {
   fajr: "🌅",
@@ -76,12 +90,12 @@ interface CongratsState {
   newAch: string[];
 }
 
-/** يفحص الإنجازات المحققة ويحفظ الجديد منها */
-function checkAchievements(logs: Logs): string[] {
+/** يفحص الإنجازات المحققة (الصلوات + التحدي المدمج) ويحفظ الجديد منها */
+function checkAchievements(logs: Logs, planner: PlannerState | null, best: number): string[] {
   const total = Object.values(logs).reduce((a, log) => a + dayCount(log), 0);
   const fullDays = Object.values(logs).filter((l) => dayCount(l) >= 5).length;
   const streak = currentStreak(logs);
-  const best = Math.max(streak, loadBestStreak());
+  const bestVal = Math.max(streak, best);
   const fajrCount = Object.values(logs).filter((l) => l.fajr).length;
   const xp = Object.values(logs).reduce(
     (a, log) => a + dayCount(log) * 10 + (dayCount(log) >= 5 ? 25 : 0),
@@ -91,14 +105,29 @@ function checkAchievements(logs: Logs): string[] {
   const add = (id: string, cond: boolean) => cond && unlocked.push(id);
   add("first-prayer", total >= 1);
   add("full-day", fullDays >= 1);
-  add("streak-3", best >= 3);
-  add("streak-7", best >= 7);
-  add("streak-30", best >= 30);
+  add("streak-3", bestVal >= 3);
+  add("streak-7", bestVal >= 7);
+  add("streak-30", bestVal >= 30);
   add("prayers-50", total >= 50);
   add("prayers-100", total >= 100);
   add("fajr-master", fajrCount >= 5);
   add("week-perfect", fullDays >= 7);
   add("level-5", xp >= 400);
+  // أوسمة التاسكات والتايمر (الدمج مع Challenge Planner)
+  if (planner) {
+    const m = plannerMetrics(planner);
+    add("first-task", m.done >= 1);
+    add("task-day", m.fullDays >= 1);
+    add("study-1h", m.study >= 3600);
+    add("tasks-streak-3", m.best >= 3);
+    add("units-10", m.units >= 10);
+    add("study-10h", m.study >= 36000);
+    add("task-half", m.pct >= 50);
+    add("units-50", m.units >= 50);
+    add("study-25h", m.study >= 90000);
+    add("course-done", m.courseDone);
+    add("all-tasks", m.total > 0 && m.done === m.total);
+  }
   return unlocked;
 }
 
@@ -136,6 +165,14 @@ export default function SakinahApp() {
   const [adhanTesting, setAdhanTesting] = useState(false);
   const [athkarIdx, setAthkarIdx] = useState(0);
   const [verseIdx, setVerseIdx] = useState(0);
+  const [mainTab, setMainTab] = useState<"home" | "tasks" | "timer">("home");
+  const [badgeXp, setBadgeXp] = useState(0);
+  const [, forceBadge] = useState(0);
+
+  const plannerApi = usePlanner();
+  const { planner } = plannerApi;
+  const plannerRef = useRef(planner);
+  plannerRef.current = planner;
 
   const snoozeRef = useRef<Partial<Record<PrayerKey, number>>>({});
   const settingsRef = useRef(settings);
@@ -164,6 +201,8 @@ export default function SakinahApp() {
     // استعادة حالة السبحة
     setAthkarIdx(Math.floor(Math.random() * ATHKAR.length));
     setVerseIdx(Math.floor(Math.random() * VERSES.length));
+    setMainTab(loadMainTab());
+    setBadgeXp(loadBadgeXp());
     setMounted(true);
   }, []);
 
@@ -324,6 +363,37 @@ export default function SakinahApp() {
     return () => clearTimeout(t);
   }, [toast]);
 
+  /* ---------------- مزامنة الإنجازات الموحدة (صلوات + تاسكات + تايمر) ---------------- */
+  useEffect(() => {
+    if (!mounted || !plannerApi.plannerMounted) return;
+    const all = checkAchievements(logs, planner, bestStreak.current);
+    let stored: string[] = [];
+    try {
+      const raw = window.localStorage.getItem("sakinah.achievements");
+      if (raw) stored = JSON.parse(raw);
+    } catch {}
+    const newOnes = all.filter((id) => !stored.includes(id));
+    if (newOnes.length) {
+      try {
+        window.localStorage.setItem("sakinah.achievements", JSON.stringify(all));
+      } catch {}
+      const bx = loadBadgeXp() + newOnes.length * XP_PER_BADGE;
+      saveBadgeXp(bx);
+      setBadgeXp(bx);
+      forceBadge((x) => x + 1);
+      const names = newOnes
+        .map((id) => ACHIEVEMENTS.find((a) => a.id === id)?.name ?? id)
+        .join("، ");
+      showToast(`🏅 إنجاز جديد: ${names} (+${toArabicDigits(newOnes.length * XP_PER_BADGE)} XP)`);
+    }
+  }, [mounted, plannerApi.plannerMounted, logs, planner, showToast]);
+
+  /* ---------------- تبويب رئيسي ---------------- */
+  const switchMainTab = useCallback((t: "home" | "tasks" | "timer") => {
+    setMainTab(t);
+    saveMainTab(t);
+  }, []);
+
   /* ---------------- إيقاف الألعاب النارية ---------------- */
   const stopFireworks = useCallback(() => setFireworksOn(false), []);
 
@@ -345,18 +415,14 @@ export default function SakinahApp() {
       }
       forceBest((x) => x + 1);
 
-      // الإنجازات الجديدة فقط
+      // الإنجازات الجديدة فقط (للعرض في التهنئة) — الحفظ ومنح XP بيتعمل في effect المزامنة
       const saved = new Set<string>();
-      const allUnlocked = checkAchievements(updated);
-      // مقارنة مع المحفوظ: نخزن الكل ونرجّع الجديد
       try {
         const raw = window.localStorage.getItem("sakinah.achievements");
         if (raw) JSON.parse(raw).forEach((id: string) => saved.add(id));
       } catch {}
-      const newOnes = allUnlocked.filter((id) => !saved.has(id));
-      window.localStorage.setItem(
-        "sakinah.achievements",
-        JSON.stringify(allUnlocked)
+      const newOnes = checkAchievements(updated, plannerRef.current, bestStreak.current).filter(
+        (id) => !saved.has(id)
       );
 
       const dayTotal = dayCount(updated[tk]);
@@ -458,13 +524,17 @@ export default function SakinahApp() {
   const totalPrayersCount = mounted
     ? Object.values(logs).reduce((a, log) => a + dayCount(log), 0)
     : 0;
-  const xpTotal = mounted
+  const xpPrayers = mounted
     ? Object.values(logs).reduce(
         (a, log) => a + dayCount(log) * 10 + (dayCount(log) >= 5 ? 25 : 0),
         0
       )
     : 0;
-  const unlockedAchievements = mounted ? checkAchievements(logs) : [];
+  // XP الموحد: صلوات + تاسكات + مذاكرة + بونص الأوسمة (الدمج الكامل)
+  const xpTotal = mounted
+    ? xpPrayers + tasksXp(planner) + studyXp(planner) + badgeXp
+    : 0;
+  const unlockedAchievements = mounted ? checkAchievements(logs, planner, bestStreak.current) : [];
   const cityName =
     settings.city === "custom"
       ? "موقعي الحالي"
@@ -507,11 +577,11 @@ export default function SakinahApp() {
               سَكِينَة
             </h1>
             <p className="text-[0.65rem]" style={{ color: "var(--ink-dim)" }}>
-              مواقيتك وأذكارك في مكان واحد
+              مواقيتك وأذكارك وتاسكاتك في مكان واحد
             </p>
           </div>
           <div className="mr-auto flex items-center gap-2">
-            <span className="chip hidden sm:inline-flex items-center gap-1.5" title="نقاط الخبرة">
+            <span className="chip hidden sm:inline-flex items-center gap-1.5" title="نقاط الخبرة الموحدة">
               ✨ {toArabicDigits(xpTotal)} XP
             </span>
             <button
@@ -523,9 +593,32 @@ export default function SakinahApp() {
             </button>
           </div>
         </div>
+        {/* التنقل الرئيسي: الصلوات / التاسكات / التايمر */}
+        <nav className="main-tabs max-w-5xl mx-auto mt-3" role="tablist" aria-label="الأقسام الرئيسية">
+          {([
+            ["home", "🕌 الصلوات"],
+            ["tasks", "📋 التاسكات"],
+            ["timer", "⏱️ التايمر"],
+          ] as ["home" | "tasks" | "timer", string][]).map(([id, label]) => (
+            <button
+              key={id}
+              role="tab"
+              aria-selected={mainTab === id}
+              onClick={() => switchMainTab(id)}
+            >
+              {label}
+            </button>
+          ))}
+        </nav>
       </header>
 
       <main className="flex-1 w-full max-w-5xl mx-auto px-3 sm:px-4 py-5 space-y-5 relative z-10">
+        {mainTab === "tasks" ? (
+          <TasksSection api={plannerApi} onToast={showToast} />
+        ) : mainTab === "timer" ? (
+          <TimerSection api={plannerApi} now={now} onToast={showToast} />
+        ) : (
+          <>
         {/* ---------------- بطاقة الصلاة القادمة ---------------- */}
         <section className="hero-card p-6 sm:p-8 animate-rise" aria-label="الصلاة القادمة">
           <div className="flex flex-col md:flex-row items-center gap-6">
@@ -732,15 +825,17 @@ export default function SakinahApp() {
             })}
           </div>
         </section>
+          </>
+        )}
       </main>
 
       {/* ---------------- الفوتر ---------------- */}
       <footer className="mt-auto relative z-10 px-4 py-6 text-center" style={{ borderTop: "1px solid var(--surface-border)" }}>
         <p className="font-quran text-lg mb-1" style={{ color: "var(--accent2)" }}>
-          رَبَّنَا تَقَبَّلْ مِنَّا صَلَاتَنَا وَذِكْرَنَا
+          رَبَّنَا تَقَبَّلْ مِنَّا صَلَاتَنَا وَذِكْرَنَا وَسَعْيَنَا
         </p>
         <p className="text-xs" style={{ color: "var(--ink-dim)" }}>
-          صُنع بحب 🤍 — سَكِينَة | المواقيت والأذكار والقبلة والإحصائيات
+          صُنع بحب 🤍 — سَكِينَة | المواقيت والأذكار والقبلة والتاسكات والتايمر
         </p>
       </footer>
 

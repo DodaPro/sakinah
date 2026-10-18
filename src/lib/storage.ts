@@ -1,5 +1,6 @@
 import type { PrayerKey } from "./data";
 import { FARD_KEYS, dayKey } from "./prayer";
+import { clearPlannerStorage } from "./planner";
 
 /* =========================================================
    طبقة التخزين المحلي (localStorage) — namespace: sakinah
@@ -216,6 +217,8 @@ export function resetAllData() {
       window.localStorage.removeItem(k);
     } catch {}
   });
+  // بيانات التخطيط والتاسكات والتايمر (الدمج مع Challenge Planner)
+  clearPlannerStorage();
 }
 
 /* ---------------- XP ---------------- */

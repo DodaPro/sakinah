@@ -234,6 +234,18 @@ export const ACHIEVEMENTS: AchievementDef[] = [
   { id: "fajr-master", name: "بطل الفجر", description: "سجّلت ٥ فروض فجر", emoji: "🌅" },
   { id: "week-perfect", name: "الأسبوع المثالي", description: "أسبوع كامل: ٣٥ صلاة", emoji: "💎" },
   { id: "level-5", name: "قريب من ربه", description: "وصلت للمستوى الخامس", emoji: "🤲" },
+  /* ---------- أوسمة التحدي والتاسكات (مدمجة من Challenge Planner) ---------- */
+  { id: "first-task", name: "أول مهمة", description: "علّمت أول مهمة", emoji: "📝" },
+  { id: "task-day", name: "يوم إنتاجي", description: "خلّصت كل مهام يوم واحد", emoji: "📅" },
+  { id: "study-1h", name: "أول ساعة", description: "ذاكرت ساعة بالتايمر", emoji: "⏱️" },
+  { id: "tasks-streak-3", name: "٣ أيام ورا بعض", description: "٣ أيام مهام كاملة متتالية", emoji: "⚡" },
+  { id: "units-10", name: "١٠ وحدات", description: "خلّصت ١٠ فيديوهات أو دروس", emoji: "🎯" },
+  { id: "study-10h", name: "١٠ ساعات مذاكرة", description: "مجموع وقت التايمر", emoji: "📚" },
+  { id: "task-half", name: "نص الطريق", description: "٥٠٪ من مهام التحدي", emoji: "🛣️" },
+  { id: "units-50", name: "٥٠ وحدة", description: "خلّصت ٥٠ وحدة من كورساتك", emoji: "🚀" },
+  { id: "study-25h", name: "٢٥ ساعة مذاكرة", description: "مجموع وقت التايمر", emoji: "🧠" },
+  { id: "course-done", name: "أول كورس خلص", description: "خلّصت كورس كامل", emoji: "🎓" },
+  { id: "all-tasks", name: "التحدي كله", description: "خلّصت كل مهام التحدي", emoji: "💪" },
 ];
 
 /* ---------------- مستويات XP ---------------- */
