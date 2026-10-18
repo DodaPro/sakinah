@@ -1,0 +1,458 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-border: var(--border);
+  --color-ring: var(--ring);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --font-sans: "Cairo", "Segoe UI", Tahoma, sans-serif;
+}
+
+:root {
+  --radius: 1rem;
+  /* أساس نظام سكينة — متغيرات التخصيص (يتم تبديلها حسب الثيم) */
+  --bg1: #071a14;
+  --bg2: #0f2f24;
+  --surface: rgba(255, 255, 255, 0.055);
+  --surface-2: rgba(255, 255, 255, 0.09);
+  --surface-border: rgba(255, 255, 255, 0.12);
+  --ink: #ecfdf5;
+  --ink-dim: #9cc7b6;
+  --accent: #34d399;
+  --accent2: #fbbf24;
+  --glow: rgba(52, 211, 153, 0.35);
+  --on-accent: #04211a;
+  /* متغيرات shadcn الأساسية */
+  --background: #071a14;
+  --foreground: #ecfdf5;
+  --border: rgba(255, 255, 255, 0.12);
+  --ring: #34d399;
+  --primary: #34d399;
+  --primary-foreground: #04211a;
+}
+
+/* ============ الثيمات (١٢ ثيم) ============ */
+
+[data-theme="emerald-night"] {
+  --bg1: #071a14; --bg2: #0f2f24;
+  --surface: rgba(255,255,255,.055); --surface-2: rgba(255,255,255,.09);
+  --surface-border: rgba(52,211,153,.16);
+  --ink: #ecfdf5; --ink-dim: #9cc7b6;
+  --accent: #34d399; --accent2: #fbbf24;
+  --glow: rgba(52,211,153,.35); --on-accent: #04211a;
+  --background: #071a14; --foreground: #ecfdf5;
+  --primary: #34d399; --primary-foreground: #04211a; --ring: #34d399;
+}
+
+[data-theme="golden-sands"] {
+  --bg1: #1c1207; --bg2: #33220d;
+  --surface: rgba(253,230,138,.06); --surface-2: rgba(253,230,138,.1);
+  --surface-border: rgba(245,158,11,.2);
+  --ink: #fef3c7; --ink-dim: #d6bb8a;
+  --accent: #f59e0b; --accent2: #fde68a;
+  --glow: rgba(245,158,11,.35); --on-accent: #291602;
+  --background: #1c1207; --foreground: #fef3c7;
+  --primary: #f59e0b; --primary-foreground: #291602; --ring: #f59e0b;
+}
+
+[data-theme="royal-purple"] {
+  --bg1: #150b26; --bg2: #2a1544;
+  --surface: rgba(196,181,253,.07); --surface-2: rgba(196,181,253,.11);
+  --surface-border: rgba(167,139,250,.2);
+  --ink: #f5f3ff; --ink-dim: #c4b5fd;
+  --accent: #a78bfa; --accent2: #fbbf24;
+  --glow: rgba(167,139,250,.35); --on-accent: #17092f;
+  --background: #150b26; --foreground: #f5f3ff;
+  --primary: #a78bfa; --primary-foreground: #17092f; --ring: #a78bfa;
+}
+
+[data-theme="ocean-pearl"] {
+  --bg1: #06161d; --bg2: #0b2a36;
+  --surface: rgba(165,243,252,.06); --surface-2: rgba(165,243,252,.1);
+  --surface-border: rgba(34,211,238,.18);
+  --ink: #ecfeff; --ink-dim: #a5f3fc;
+  --accent: #22d3ee; --accent2: #fbbf24;
+  --glow: rgba(34,211,238,.33); --on-accent: #032027;
+  --background: #06161d; --foreground: #ecfeff;
+  --primary: #22d3ee; --primary-foreground: #032027; --ring: #22d3ee;
+}
+
+[data-theme="warm-sunset"] {
+  --bg1: #210a0e; --bg2: #3a1218;
+  --surface: rgba(254,205,211,.07); --surface-2: rgba(254,205,211,.11);
+  --surface-border: rgba(251,113,133,.2);
+  --ink: #fff1f2; --ink-dim: #fecdd3;
+  --accent: #fb7185; --accent2: #fdba74;
+  --glow: rgba(251,113,133,.35); --on-accent: #2c050b;
+  --background: #210a0e; --foreground: #fff1f2;
+  --primary: #fb7185; --primary-foreground: #2c050b; --ring: #fb7185;
+}
+
+[data-theme="rose-luxury"] {
+  --bg1: #fff5f7; --bg2: #ffe1ea;
+  --surface: rgba(190,24,93,.06); --surface-2: rgba(190,24,93,.09);
+  --surface-border: rgba(190,24,93,.16);
+  --ink: #4c0519; --ink-dim: #9f1239;
+  --accent: #e11d48; --accent2: #d97706;
+  --glow: rgba(225,29,72,.25); --on-accent: #fff1f2;
+  --background: #fff5f7; --foreground: #4c0519;
+  --primary: #e11d48; --primary-foreground: #fff1f2; --ring: #e11d48;
+}
+
+[data-theme="pure-light"] {
+  --bg1: #f8faf7; --bg2: #e9f3ec;
+  --surface: rgba(6,78,59,.05); --surface-2: rgba(6,78,59,.08);
+  --surface-border: rgba(6,78,59,.14);
+  --ink: #052e22; --ink-dim: #3d6b5c;
+  --accent: #059669; --accent2: #b45309;
+  --glow: rgba(5,150,105,.22); --on-accent: #ecfdf5;
+  --background: #f8faf7; --foreground: #052e22;
+  --primary: #059669; --primary-foreground: #ecfdf5; --ring: #059669;
+}
+
+[data-theme="elegant-charcoal"] {
+  --bg1: #0b0b0e; --bg2: #191921;
+  --surface: rgba(255,255,255,.05); --surface-2: rgba(255,255,255,.08);
+  --surface-border: rgba(255,255,255,.13);
+  --ink: #f4f4f5; --ink-dim: #a1a1aa;
+  --accent: #10b981; --accent2: #e4e4e7;
+  --glow: rgba(16,185,129,.3); --on-accent: #022c22;
+  --background: #0b0b0e; --foreground: #f4f4f5;
+  --primary: #10b981; --primary-foreground: #022c22; --ring: #10b981;
+}
+
+[data-theme="mosque-green"] {
+  --bg1: #eef6ef; --bg2: #d7ecd9;
+  --surface: rgba(21,128,61,.06); --surface-2: rgba(21,128,61,.09);
+  --surface-border: rgba(21,128,61,.17);
+  --ink: #052e16; --ink-dim: #276749;
+  --accent: #15803d; --accent2: #b45309;
+  --glow: rgba(21,128,61,.22); --on-accent: #ecfdf5;
+  --background: #eef6ef; --foreground: #052e16;
+  --primary: #15803d; --primary-foreground: #ecfdf5; --ring: #15803d;
+}
+
+[data-theme="sahara-dawn"] {
+  --bg1: #fdf6ea; --bg2: #f3e3c3;
+  --surface: rgba(146,64,14,.06); --surface-2: rgba(146,64,14,.09);
+  --surface-border: rgba(146,64,14,.16);
+  --ink: #451a03; --ink-dim: #78350f;
+  --accent: #b45309; --accent2: #047857;
+  --glow: rgba(180,83,9,.22); --on-accent: #fffbeb;
+  --background: #fdf6ea; --foreground: #451a03;
+  --primary: #b45309; --primary-foreground: #fffbeb; --ring: #b45309;
+}
+
+[data-theme="midnight-gold"] {
+  --bg1: #0e0c06; --bg2: #1d1810;
+  --surface: rgba(212,175,55,.07); --surface-2: rgba(212,175,55,.11);
+  --surface-border: rgba(212,175,55,.22);
+  --ink: #fdf6e3; --ink-dim: #d9c79a;
+  --accent: #d4af37; --accent2: #8fd3b8;
+  --glow: rgba(212,175,55,.33); --on-accent: #241c04;
+  --background: #0e0c06; --foreground: #fdf6e3;
+  --primary: #d4af37; --primary-foreground: #241c04; --ring: #d4af37;
+}
+
+[data-theme="pistachio-calm"] {
+  --bg1: #f5faee; --bg2: #e3f1d5;
+  --surface: rgba(77,124,15,.06); --surface-2: rgba(77,124,15,.09);
+  --surface-border: rgba(101,163,13,.18);
+  --ink: #1a2e05; --ink-dim: #4d7c0f;
+  --accent: #65a30d; --accent2: #ea580c;
+  --glow: rgba(101,163,13,.22); --on-accent: #f7fee7;
+  --background: #f5faee; --foreground: #1a2e05;
+  --primary: #65a30d; --primary-foreground: #f7fee7; --ring: #65a30d;
+}
+
+/* ============ الأساسيات ============ */
+
+* {
+  border-color: var(--surface-border);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  color: var(--ink);
+  font-family: "Cairo", "Segoe UI", Tahoma, sans-serif;
+  background:
+    radial-gradient(1200px 700px at 85% -10%, var(--glow), transparent 60%),
+    radial-gradient(900px 600px at 10% 110%, var(--glow), transparent 55%),
+    linear-gradient(160deg, var(--bg1) 0%, var(--bg2) 100%);
+  background-attachment: fixed;
+  min-height: 100vh;
+}
+
+::selection {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+/* خط الآيات والأذكار */
+.font-quran {
+  font-family: "Amiri", "Traditional Arabic", "Scheherazade New", serif;
+}
+
+/* ============ كروت و مكونات ============ */
+
+.glass-card {
+  background: var(--surface);
+  border: 1px solid var(--surface-border);
+  border-radius: 1.4rem;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  transition: transform 0.35s ease, box-shadow 0.35s ease, border-color 0.35s ease;
+}
+
+.glass-card:hover {
+  border-color: var(--accent);
+  box-shadow: 0 8px 40px -12px var(--glow);
+}
+
+.hero-card {
+  background:
+    radial-gradient(700px 300px at 50% -80px, var(--glow), transparent 70%),
+    var(--surface-2);
+  border: 1px solid var(--surface-border);
+  border-radius: 2rem;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+.btn-accent {
+  background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 70%, var(--accent2)));
+  color: var(--on-accent);
+  border: none;
+  border-radius: 1rem;
+  font-weight: 700;
+  transition: transform 0.2s ease, box-shadow 0.25s ease, filter 0.25s ease;
+  box-shadow: 0 6px 24px -8px var(--glow);
+}
+
+.btn-accent:hover {
+  transform: translateY(-2px) scale(1.02);
+  filter: brightness(1.08);
+  box-shadow: 0 10px 32px -8px var(--glow);
+}
+
+.btn-accent:active {
+  transform: translateY(0) scale(0.98);
+}
+
+.btn-ghost {
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--surface-border);
+  border-radius: 1rem;
+  font-weight: 600;
+  transition: transform 0.2s ease, border-color 0.25s ease, background 0.25s ease;
+}
+
+.btn-ghost:hover {
+  border-color: var(--accent);
+  background: var(--surface-2);
+  transform: translateY(-1px);
+}
+
+.chip {
+  background: var(--surface);
+  border: 1px solid var(--surface-border);
+  border-radius: 999px;
+  color: var(--ink-dim);
+  font-size: 0.78rem;
+  padding: 0.3rem 0.8rem;
+}
+
+/* ============ الأنميشن ============ */
+
+@keyframes fade-swap {
+  0% { opacity: 0; transform: translateY(14px); filter: blur(4px); }
+  100% { opacity: 1; transform: translateY(0); filter: blur(0); }
+}
+
+.animate-fade-swap {
+  animation: fade-swap 0.9s ease both;
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 24px -6px var(--glow); }
+  50% { box-shadow: 0 0 54px -4px var(--glow); }
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 3.2s ease-in-out infinite;
+}
+
+@keyframes float-y {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+.animate-float {
+  animation: float-y 5s ease-in-out infinite;
+}
+
+@keyframes pop-in {
+  0% { opacity: 0; transform: scale(0.7); }
+  60% { opacity: 1; transform: scale(1.06); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+.animate-pop-in {
+  animation: pop-in 0.55s cubic-bezier(0.22, 1.4, 0.4, 1) both;
+}
+
+@keyframes rise-fade {
+  0% { opacity: 0; transform: translateY(40px) scale(0.96); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.animate-rise {
+  animation: rise-fade 0.7s ease both;
+}
+
+@keyframes spin-slow {
+  to { transform: rotate(360deg); }
+}
+
+.animate-spin-slow {
+  animation: spin-slow 22s linear infinite;
+}
+
+@keyframes ring-dash {
+  0% { stroke-dashoffset: var(--ring-start, 999); }
+}
+
+/* زخارف عائمة في الخلفية */
+.ornament {
+  position: fixed;
+  border-radius: 50%;
+  pointer-events: none;
+  background: radial-gradient(circle, var(--glow), transparent 70%);
+  opacity: 0.55;
+  animation: float-y 9s ease-in-out infinite;
+  z-index: 0;
+}
+
+/* تعطيل كل الأنميشن عند الإطفاء */
+[data-animations="off"] *,
+[data-animations="off"] *::before,
+[data-animations="off"] *::after {
+  animation: none !important;
+  transition: none !important;
+}
+
+[data-animations="off"] .ornament {
+  display: none;
+}
+
+/* ============ سكرول بار ============ */
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--surface-border);
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent);
+}
+
+/* شريط تمرير أفقي أنيق لصف الصلوات على الموبايل */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* إمكانية الوصول */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+/* إدخالات النطاق (صوت الأذان) */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  border: 1px solid var(--surface-border);
+  outline-offset: 4px;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 3px solid var(--bg2);
+  box-shadow: 0 0 14px -2px var(--glow);
+  cursor: pointer;
+}
+
+input[type="range"]::-moz-range-thumb {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 3px solid var(--bg2);
+  cursor: pointer;
+}
+
+input[type="color"] {
+  -webkit-appearance: none;
+  appearance: none;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+input[type="color"]::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+input[type="color"]::-webkit-color-swatch {
+  border: 2px solid var(--surface-border);
+  border-radius: 12px;
+}
+
+/* إخفاء الأسهم في حقول الأرقام */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
