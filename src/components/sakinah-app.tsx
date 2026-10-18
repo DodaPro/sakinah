@@ -65,6 +65,9 @@ import TasbihCard from "./tasbih-card";
 import StatsSection from "./stats-section";
 import TasksSection from "./tasks-section";
 import TimerSection from "./timer-section";
+import QuranSection from "./quran-section";
+import AnimatedBackground from "./animated-background";
+import { findReciter, ayahAudioUrl, loadReciterId } from "@/lib/quran";
 
 const PRAYER_EMOJI: Record<PrayerKey | "sunrise", string> = {
   fajr: "🌅",
@@ -165,9 +168,11 @@ export default function SakinahApp() {
   const [adhanTesting, setAdhanTesting] = useState(false);
   const [athkarIdx, setAthkarIdx] = useState(0);
   const [verseIdx, setVerseIdx] = useState(0);
-  const [mainTab, setMainTab] = useState<"home" | "tasks" | "timer">("home");
+  const [mainTab, setMainTab] = useState<"home" | "tasks" | "timer" | "quran">("home");
   const [badgeXp, setBadgeXp] = useState(0);
   const [, forceBadge] = useState(0);
+  const [versePlaying, setVersePlaying] = useState(false);
+  const verseAudioRef = useRef<HTMLAudioElement | null>(null);
 
   const plannerApi = usePlanner();
   const { planner } = plannerApi;
@@ -389,7 +394,7 @@ export default function SakinahApp() {
   }, [mounted, plannerApi.plannerMounted, logs, planner, showToast]);
 
   /* ---------------- تبويب رئيسي ---------------- */
-  const switchMainTab = useCallback((t: "home" | "tasks" | "timer") => {
+  const switchMainTab = useCallback((t: "home" | "tasks" | "timer" | "quran") => {
     setMainTab(t);
     saveMainTab(t);
   }, []);
@@ -464,6 +469,45 @@ export default function SakinahApp() {
     player.stop();
     showToast(`💤 تمام، هنفكّرك تاني بعد ${toArabicDigits(10)} دقايق`);
   }, [activePrayer, player, showToast]);
+
+  /* ---------------- تشغيل تلاوة الآية (بالقارئ المختار في القرآن) ---------------- */
+  const toggleVerseAudio = useCallback(() => {
+    const verse = VERSES[verseIdx];
+    if (!verse?.s || !verse?.a) return;
+    if (verseAudioRef.current) {
+      verseAudioRef.current.pause();
+      verseAudioRef.current = null;
+      setVersePlaying(false);
+      if (versePlaying) return;
+    }
+    const rec = findReciter(loadReciterId());
+    const url = ayahAudioUrl(rec, verse.s, verse.a);
+    if (!url) {
+      showToast("🎙️ القارئ دا مفيش ليه صوت آية مفردة — اختار قارئ تاني من تبويب القرآن");
+      return;
+    }
+    const audio = new Audio(url);
+    verseAudioRef.current = audio;
+    setVersePlaying(true);
+    audio.play().catch(() => {
+      setVersePlaying(false);
+      verseAudioRef.current = null;
+      showToast("⚠️ مش قادر يشغّل الآية — اتأكد من النت");
+    });
+    audio.onended = () => {
+      setVersePlaying(false);
+      verseAudioRef.current = null;
+    };
+  }, [verseIdx, versePlaying, showToast]);
+
+  useEffect(() => {
+    return () => {
+      if (verseAudioRef.current) {
+        verseAudioRef.current.pause();
+        verseAudioRef.current = null;
+      }
+    };
+  }, []);
 
   const confirmAction = useCallback(() => {
     if (!confirm) return;
@@ -563,6 +607,9 @@ export default function SakinahApp() {
 
   return (
     <div className="min-h-screen flex flex-col relative overflow-x-clip">
+      {/* أنميشن الخلفية: نجوم وهالات */}
+      <AnimatedBackground enabled={settings.animations && settings.bgAnim} />
+
       {/* زخارف خلفية */}
       <div className="ornament w-[420px] h-[420px] -top-32 -right-32" />
       <div className="ornament w-[300px] h-[300px] top-1/2 -left-24" style={{ animationDelay: "2s" }} />
@@ -577,7 +624,7 @@ export default function SakinahApp() {
               سَكِينَة
             </h1>
             <p className="text-[0.65rem]" style={{ color: "var(--ink-dim)" }}>
-              مواقيتك وأذكارك وتاسكاتك في مكان واحد
+              مواقيتك وأذكارك وقارئك وتاسكاتك في مكان واحد
             </p>
           </div>
           <div className="mr-auto flex items-center gap-2">
@@ -593,13 +640,14 @@ export default function SakinahApp() {
             </button>
           </div>
         </div>
-        {/* التنقل الرئيسي: الصلوات / التاسكات / التايمر */}
+        {/* التنقل الرئيسي: الصلوات / القرآن / التاسكات / التايمر */}
         <nav className="main-tabs max-w-5xl mx-auto mt-3" role="tablist" aria-label="الأقسام الرئيسية">
           {([
             ["home", "🕌 الصلوات"],
+            ["quran", "📖 القرآن"],
             ["tasks", "📋 التاسكات"],
             ["timer", "⏱️ التايمر"],
-          ] as ["home" | "tasks" | "timer", string][]).map(([id, label]) => (
+          ] as ["home" | "tasks" | "timer" | "quran", string][]).map(([id, label]) => (
             <button
               key={id}
               role="tab"
@@ -617,6 +665,8 @@ export default function SakinahApp() {
           <TasksSection api={plannerApi} onToast={showToast} />
         ) : mainTab === "timer" ? (
           <TimerSection api={plannerApi} now={now} onToast={showToast} />
+        ) : mainTab === "quran" ? (
+          <QuranSection onToast={showToast} />
         ) : (
           <>
         {/* ---------------- بطاقة الصلاة القادمة ---------------- */}
@@ -770,6 +820,16 @@ export default function SakinahApp() {
               <p className="text-xs text-center" style={{ color: "var(--ink-dim)" }}>
                 [{VERSES[verseIdx].ref}]
               </p>
+              {VERSES[verseIdx].s && VERSES[verseIdx].a && (
+                <button
+                  onClick={toggleVerseAudio}
+                  className="btn-ghost mx-auto mt-3 px-4 py-1.5 text-xs"
+                  aria-label={versePlaying ? "إيقاف تلاوة الآية" : "تشغيل تلاوة الآية بالقارئ المختار"}
+                  title="تشغيل تلاوة الآية بالقارئ المختار في تبويب القرآن"
+                >
+                  {versePlaying ? "⏹ إيقاف التلاوة" : "🔊 اسمع الآية"}
+                </button>
+              )}
             </div>
             <div className="flex justify-center gap-2 mt-4">
               <button onClick={() => setVerseIdx((x) => (x - 1 + VERSES.length) % VERSES.length)} className="btn-ghost px-4 py-2 text-sm" aria-label="الآية السابقة">
@@ -835,7 +895,7 @@ export default function SakinahApp() {
           رَبَّنَا تَقَبَّلْ مِنَّا صَلَاتَنَا وَذِكْرَنَا وَسَعْيَنَا
         </p>
         <p className="text-xs" style={{ color: "var(--ink-dim)" }}>
-          صُنع بحب 🤍 — سَكِينَة | المواقيت والأذكار والقبلة والتاسكات والتايمر
+          صُنع بحب 🤍 — سَكِينَة | المواقيت والأذكار والقرآن والتاسكات والتايمر
         </p>
       </footer>
 

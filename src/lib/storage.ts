@@ -12,6 +12,7 @@ export interface AppSettings {
   customAccent2: string | null;
   mood: string | null;
   animations: boolean;
+  bgAnim: boolean; // أنميشن الخلفية (نجوم وهالات)
   adhanEnabled: boolean;
   adhanVoice: string; // id من ADHAN_VOICES
   fajrVoice: string; // "same" أو id
@@ -34,6 +35,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   customAccent2: null,
   mood: null,
   animations: true,
+  bgAnim: true,
   adhanEnabled: true,
   adhanVoice: "madinah",
   fajrVoice: "fajr-cairo",

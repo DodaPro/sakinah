@@ -198,13 +198,15 @@ export function saveBadgeXp(n: number) {
   } catch {}
 }
 
-export function loadMainTab(): "home" | "tasks" | "timer" {
+export type MainTab = "home" | "tasks" | "timer" | "quran";
+
+export function loadMainTab(): MainTab {
   if (typeof window === "undefined") return "home";
   const t = window.localStorage.getItem(K_MAIN_TAB);
-  return t === "tasks" || t === "timer" ? t : "home";
+  return t === "tasks" || t === "timer" || t === "quran" ? t : "home";
 }
 
-export function saveMainTab(t: "home" | "tasks" | "timer") {
+export function saveMainTab(t: MainTab) {
   if (typeof window === "undefined") return;
   try {
     window.localStorage.setItem(K_MAIN_TAB, t);

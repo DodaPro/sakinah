@@ -257,6 +257,13 @@ export default function SettingsPanel({
                 label="✨ تشغيل الأنميشنات"
                 hint="الحركات والتوهجات والألعاب النارية — اقفلها لو بتحب شكل هادي تمامًا"
               />
+
+              <Switch
+                checked={settings.bgAnim && settings.animations}
+                onChange={(v) => onChange({ bgAnim: v })}
+                label="🌌 أنميشن الخلفية"
+                hint="نجوم متلألئة وهالات ضوئية بتتحرك ورا المحتوى — بيتقفل تلقائي مع قفل الأنميشنات"
+              />
             </>
           )}
 

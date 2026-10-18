@@ -984,3 +984,89 @@ select.tinput option {
     grid-template-columns: 1fr;
   }
 }
+
+/* =========================================================
+   القرآن الكريم: الخلفية المتحركة + القراء + المشغل
+   ========================================================= */
+
+/* ------- أنميشن الخلفية (كانفس) ------- */
+.bg-anim-canvas {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.9;
+}
+
+[data-animations="off"] .bg-anim-canvas {
+  display: none;
+}
+
+/* ------- شريط تقدم التلاوة ------- */
+.q-progress {
+  direction: ltr;
+}
+.q-progress-fill {
+  transition: width 0.4s linear;
+}
+
+/* ------- كارت قارئ ------- */
+.reciter-card:hover {
+  border-color: var(--accent) !important;
+}
+
+/* ------- بحث السور ------- */
+.q-search:focus {
+  outline: none;
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 3px var(--glow);
+}
+.q-search::placeholder {
+  color: var(--ink-dim);
+  opacity: 0.7;
+}
+
+/* ------- قائمة السور (سكرول أنيق) ------- */
+.q-surah-list {
+  scrollbar-width: thin;
+  scrollbar-color: var(--accent) transparent;
+}
+.q-surah-list::-webkit-scrollbar {
+  width: 6px;
+}
+.q-surah-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+.q-surah-list::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--accent) 55%, transparent);
+  border-radius: 999px;
+}
+.surah-row:hover {
+  transform: translateX(-3px);
+}
+
+/* ------- مؤشر التشغيل (معادل صوتي) ------- */
+.eq {
+  display: inline-flex;
+  align-items: flex-end;
+}
+.eq i {
+  display: block;
+  width: 3px;
+  border-radius: 2px 2px 0 0;
+  background: var(--accent);
+  animation: eq-bounce 0.9s ease-in-out infinite;
+}
+.eq i:nth-child(1) { height: 60%; animation-delay: 0s; }
+.eq i:nth-child(2) { height: 100%; animation-delay: 0.25s; }
+.eq i:nth-child(3) { height: 70%; animation-delay: 0.5s; }
+
+@keyframes eq-bounce {
+  0%, 100% { transform: scaleY(0.4); }
+  50% { transform: scaleY(1); }
+}
+
+[data-animations="off"] .eq i {
+  animation: none;
+  transform: scaleY(0.7);
+}
