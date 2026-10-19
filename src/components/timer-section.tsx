@@ -236,19 +236,19 @@ export default function TimerSection({
 
       {/* ---------- إحصائيات ---------- */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-        <div className="glass-card !rounded-2xl p-3.5 text-center">
+        <div className="glass-card !rounded-2xl p-3.5 text-center qstat">
           <b className="block text-lg font-extrabold tabular-nums" style={{ color: "var(--accent)" }}>{fmtDur(total)}</b>
           <span className="text-[0.68rem]" style={{ color: "var(--ink-dim)" }}>الإجمالي في التحدي</span>
         </div>
-        <div className="glass-card !rounded-2xl p-3.5 text-center">
+        <div className="glass-card !rounded-2xl p-3.5 text-center qstat">
           <b className="block text-lg font-extrabold tabular-nums" style={{ color: "var(--accent2)" }}>{fmtDur(total / elapsedCount)}</b>
           <span className="text-[0.68rem]" style={{ color: "var(--ink-dim)" }}>متوسط اليوم</span>
         </div>
-        <div className="glass-card !rounded-2xl p-3.5 text-center">
+        <div className="glass-card !rounded-2xl p-3.5 text-center qstat">
           <b className="block text-lg font-extrabold tabular-nums" style={{ color: "var(--accent)" }}>{best ? fmtDur(best) : "٠ د"}</b>
           <span className="text-[0.68rem]" style={{ color: "var(--ink-dim)" }}>أفضل يوم{best ? ` (يوم ${toAr(bi + 1)})` : ""}</span>
         </div>
-        <div className="glass-card !rounded-2xl p-3.5 text-center">
+        <div className="glass-card !rounded-2xl p-3.5 text-center qstat">
           <b className="block text-lg font-extrabold tabular-nums" style={{ color: "var(--accent2)" }}>{toAr(hit)}</b>
           <span className="text-[0.68rem]" style={{ color: "var(--ink-dim)" }}>أيام حققت الهدف</span>
         </div>

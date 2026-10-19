@@ -66,7 +66,9 @@ export default function RootLayout({
         />
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
       </head>
-      <body className="antialiased">{children}</body>
+      {/* suppressHydrationWarning: بعض إضافات المتصفح بتضيف attributes على body
+          (مثل bis_status / __processed_..) قبل ما React يشتغل فبيعمل hydration mismatch */}
+      <body className="antialiased" suppressHydrationWarning>{children}</body>
     </html>
   );
 }

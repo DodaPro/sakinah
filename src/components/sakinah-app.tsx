@@ -63,9 +63,7 @@ import SettingsPanel from "./settings-panel";
 import QiblaCompass from "./qibla-compass";
 import TasbihCard from "./tasbih-card";
 import StatsSection from "./stats-section";
-import TasksSection from "./tasks-section";
-import TimerSection from "./timer-section";
-import StudySection from "./study-section";
+import FocusSection from "./focus-section";
 import AchievementsSection from "./achievements-section";
 import QuranSection from "./quran-section";
 import AnimatedBackground from "./animated-background";
@@ -643,14 +641,12 @@ export default function SakinahApp() {
             </button>
           </div>
         </div>
-        {/* التنقل الرئيسي: الصلوات / القرآن / التاسكات / التايمر / وقت المذاكرة / إنجازاتي */}
+        {/* التنقل الرئيسي: الصلوات / القرآن / قسم موحّد (تاسكات + تايمر + وقت المذاكرة) / إنجازاتي */}
         <nav className="main-tabs max-w-5xl mx-auto mt-3" role="tablist" aria-label="الأقسام الرئيسية">
           {([
             ["home", "🕌 الصلوات"],
             ["quran", "📖 القرآن"],
-            ["tasks", "📋 التاسكات"],
-            ["timer", "⏱️ التايمر"],
-            ["study", "📚 وقت المذاكرة"],
+            ["focus", "⏱️ التاسكات والتايمر"],
             ["achv", "🏅 إنجازاتي"],
           ] as [MainTab, string][]).map(([id, label]) => (
             <button
@@ -666,12 +662,8 @@ export default function SakinahApp() {
       </header>
 
       <main className="flex-1 w-full max-w-5xl mx-auto px-3 sm:px-4 py-5 space-y-5 relative z-10">
-        {mainTab === "tasks" ? (
-          <TasksSection api={plannerApi} onToast={showToast} goTimer={() => switchMainTab("timer")} />
-        ) : mainTab === "timer" ? (
-          <TimerSection api={plannerApi} now={now} onToast={showToast} />
-        ) : mainTab === "study" ? (
-          <StudySection api={plannerApi} now={now} onToast={showToast} />
+        {mainTab === "focus" ? (
+          <FocusSection api={plannerApi} now={now} onToast={showToast} />
         ) : mainTab === "achv" ? (
           <AchievementsSection
             api={plannerApi}
@@ -874,13 +866,13 @@ export default function SakinahApp() {
               {toArabicDigits(unlockedAchievements.length)} / {toArabicDigits(ACHIEVEMENTS.length)}
             </span>
           </div>
-          <div className="flex gap-2.5 overflow-x-auto no-scrollbar pb-1">
+          <div className="flex gap-2.5 overflow-x-auto no-scrollbar pb-1 snap-x">
             {ACHIEVEMENTS.map((a) => {
               const got = unlockedAchievements.includes(a.id);
               return (
                 <div
                   key={a.id}
-                  className="shrink-0 w-32 p-3 rounded-2xl text-center"
+                  className="achv-mini shrink-0 w-32 p-3 rounded-2xl text-center"
                   style={{
                     background: "var(--surface)",
                     border: got ? "1.5px solid var(--accent)" : "1px dashed var(--surface-border)",
@@ -893,7 +885,7 @@ export default function SakinahApp() {
                   <span className="block text-xs font-bold" style={{ color: got ? "var(--accent2)" : "var(--ink-dim)" }}>
                     {a.name}
                   </span>
-                  <span className="block text-[0.62rem] mt-0.5 leading-snug" style={{ color: "var(--ink-dim)" }}>
+                  <span className="desc block text-[0.62rem] mt-0.5 leading-snug" style={{ color: "var(--ink-dim)" }}>
                     {a.description}
                   </span>
                 </div>

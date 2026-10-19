@@ -1071,6 +1071,10 @@ select.tinput option {
   font-size: 0.64rem;
   line-height: 1.45;
   color: var(--ink-dim);
+  display: block;
+  overflow: hidden;
+  min-height: 1.86rem; /* احجز سطرين لكل الأوسمة = شبكة مرتبة تمامًا */
+  max-height: 1.86rem; /* واقتص بحد سطرين (Lightning CSS بيلغي -webkit-box فاستخدمنا ارتفاع ثابت) */
 }
 .achv-badge.got {
   opacity: 1;
@@ -1093,6 +1097,85 @@ select.tinput option {
   padding: 0.05rem 0.45rem;
 }
 
+/* =========================================================
+   القسم الموحّد: التاسكات + التايمر + وقت المذاكرة
+   ========================================================= */
+.today-strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+.today-strip .chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+.today-strip .chip b {
+  font-weight: 800;
+}
+.today-live {
+  cursor: pointer;
+  animation: todayPulse 1.8s ease-in-out infinite;
+}
+@keyframes todayPulse {
+  0%, 100% { box-shadow: 0 0 0 0 var(--glow); }
+  50% { box-shadow: 0 0 14px 0 var(--glow); }
+}
+[data-animations="off"] .today-live {
+  animation: none;
+}
+.focus-tabs {
+  max-width: 560px;
+}
+.sub-tabs button.live:not([aria-selected="true"]) {
+  color: var(--accent);
+  border: 1px solid var(--accent);
+}
+
+/* ------- كروت الإحصائيات السريعة: ارتفاع موحد ومحاذاة مركزية في كل الأقسام ------- */
+.qstat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.2rem;
+  text-align: center;
+  min-height: 96px;
+}
+.qstat b {
+  font-weight: 800;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+.qstat span {
+  line-height: 1.4;
+  display: block;
+  overflow: hidden;
+  min-height: 1.9rem; /* احجز سطرين عشان كل الكروت تبقى نفس الطول بالظبط */
+  max-height: 1.9rem;
+}
+
+/* ------- أوسمة الشريط الأفقي (الرئيسية): ارتفاع موحد + وصف بخطين ------- */
+.achv-mini {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.25rem;
+  min-height: 122px;
+  scroll-snap-align: start;
+}
+.achv-mini .desc {
+  display: block;
+  overflow: hidden;
+  min-height: 1.72rem;
+  max-height: 1.72rem; /* وصف بخطين ثابتين = أوسمة الشريط كلها نفس الطول */
+}
+
 /* ------- الموبايل ------- */
 @media (max-width: 560px) {
   .fgrid {
@@ -1106,11 +1189,28 @@ select.tinput option {
     padding: 8px 12px;
     font-size: 0.78rem;
   }
+  .main-tabs {
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .main-tabs::-webkit-scrollbar {
+    display: none;
+  }
   .week-grid {
     grid-template-columns: 1fr;
   }
   .achv-grid {
     grid-template-columns: repeat(2, 1fr);
+  }
+  .focus-tabs {
+    max-width: none;
+    overflow-x: auto;
+  }
+  .qstat {
+    min-height: 84px;
+  }
+  .achv-mini {
+    min-height: 112px;
   }
   .log-task {
     max-width: 110px;

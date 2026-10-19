@@ -518,19 +518,19 @@ export default function TasksSection({
 
   const statsRow = () => (
     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-      <div className="glass-card !rounded-2xl p-3.5 text-center">
+      <div className="glass-card !rounded-2xl p-3.5 text-center qstat">
         <b className="block text-xl font-extrabold tabular-nums" style={{ color: "var(--accent)" }}>🔥 {toAr(m.cur)}</b>
         <span className="text-[0.68rem]" style={{ color: "var(--ink-dim)" }}>أيام كاملة ورا بعض</span>
       </div>
-      <div className="glass-card !rounded-2xl p-3.5 text-center">
+      <div className="glass-card !rounded-2xl p-3.5 text-center qstat">
         <b className="block text-xl font-extrabold tabular-nums" style={{ color: "var(--accent2)" }}>{toAr(m.overdue)}</b>
         <span className="text-[0.68rem]" style={{ color: "var(--ink-dim)" }}>{m.overdue ? "مهام متأخرة" : "مفيش متأخرات"}</span>
       </div>
-      <div className="glass-card !rounded-2xl p-3.5 text-center">
+      <div className="glass-card !rounded-2xl p-3.5 text-center qstat">
         <b className="block text-xl font-extrabold tabular-nums" style={{ color: "var(--accent)" }}>{toAr(m.units)}</b>
         <span className="text-[0.68rem]" style={{ color: "var(--ink-dim)" }}>وحدة اتعملت</span>
       </div>
-      <div className="glass-card !rounded-2xl p-3.5 text-center">
+      <div className="glass-card !rounded-2xl p-3.5 text-center qstat">
         <b className="block text-xl font-extrabold tabular-nums" style={{ color: "var(--accent2)" }}>{toAr(m.pct)}٪</b>
         <span className="text-[0.68rem]" style={{ color: "var(--ink-dim)" }}>من التحدي كله</span>
       </div>

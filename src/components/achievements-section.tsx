@@ -2,7 +2,7 @@
 
 import { ACHIEVEMENTS } from "@/lib/data";
 import type { PlannerApi } from "@/lib/planner";
-import { fmtDur, plannerMetrics, toAr } from "@/lib/planner";
+import { plannerMetrics, toAr } from "@/lib/planner";
 import type { Logs } from "@/lib/storage";
 import { dayCount } from "@/lib/storage";
 
@@ -12,6 +12,12 @@ import { dayCount } from "@/lib/storage";
    ========================================================= */
 
 const XP_PER_LEVEL = 100;
+
+/** تنسيق مختصر بالساعات للكروت الصغيرة: ٠ ساعة / ١٫٥ ساعة */
+function fmtHrs(secs: number): string {
+  const h = Math.round(secs / 360) / 10;
+  return `${toAr(String(h)).replace(".", "٫")} ساعة`;
+}
 
 export default function AchievementsSection({
   api,
@@ -103,20 +109,20 @@ export default function AchievementsSection({
 
       {/* ---------- إحصائيات سريعة ---------- */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5" aria-label="ملخص الإنجازات">
-        <div className="glass-card !rounded-2xl p-3.5 text-center">
+        <div className="glass-card !rounded-2xl p-3.5 text-center qstat">
           <b className="block text-xl font-extrabold tabular-nums" style={{ color: "var(--accent)" }}>🕌 {toAr(prayersTotal)}</b>
           <span className="text-[0.68rem]" style={{ color: "var(--ink-dim)" }}>صلاة مسجلة</span>
         </div>
-        <div className="glass-card !rounded-2xl p-3.5 text-center">
+        <div className="glass-card !rounded-2xl p-3.5 text-center qstat">
           <b className="block text-xl font-extrabold tabular-nums" style={{ color: "var(--accent2)" }}>🔥 {toAr(streak)}</b>
           <span className="text-[0.68rem]" style={{ color: "var(--ink-dim)" }}>سلسلة الصلوات (الأفضل {toAr(bestStreak)})</span>
         </div>
-        <div className="glass-card !rounded-2xl p-3.5 text-center">
+        <div className="glass-card !rounded-2xl p-3.5 text-center qstat">
           <b className="block text-xl font-extrabold tabular-nums" style={{ color: "var(--accent)" }}>✅ {toAr(m.done)}</b>
           <span className="text-[0.68rem]" style={{ color: "var(--ink-dim)" }}>مهمة خلصت من {toAr(m.total)}</span>
         </div>
-        <div className="glass-card !rounded-2xl p-3.5 text-center">
-          <b className="block text-xl font-extrabold tabular-nums" style={{ color: "var(--accent2)" }}>⏱️ {fmtDur(m.study)}</b>
+        <div className="glass-card !rounded-2xl p-3.5 text-center qstat">
+          <b className="block text-xl font-extrabold tabular-nums" style={{ color: "var(--accent2)" }}>⏱️ {fmtHrs(m.study)}</b>
           <span className="text-[0.68rem]" style={{ color: "var(--ink-dim)" }}>وقت مذاكرة إجمالي</span>
         </div>
       </div>
