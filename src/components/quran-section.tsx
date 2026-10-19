@@ -143,6 +143,16 @@ export default function QuranSection({ onToast }: { onToast: (msg: string) => vo
     [surahNum, reciter, play, persistSurah]
   );
 
+  /* ---------------- تقديم/رجوع بالثواني (مسافة صغيرة) ---------------- */
+  const seekBy = useCallback((delta: number) => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    const max = isFinite(audio.duration) && audio.duration > 0 ? audio.duration : Infinity;
+    const next = Math.min(Math.max(0, audio.currentTime + delta), max);
+    audio.currentTime = next;
+    setCurrentTime(next);
+  }, []);
+
   /* ---------------- أحداث الصوت ---------------- */
   useEffect(() => {
     const audio = audioRef.current;
@@ -234,7 +244,8 @@ export default function QuranSection({ onToast }: { onToast: (msg: string) => vo
     const audio = audioRef.current;
     if (!audio || !audio.duration || !isFinite(audio.duration)) return;
     const rect = e.currentTarget.getBoundingClientRect();
-    const ratio = 1 - (e.clientX - rect.left) / rect.width; // RTL
+    // الشريط نفسه LTR في الـ CSS — الضغط يمين = تقديم، شمال = رجوع (زي كل المشغلات)
+    const ratio = (e.clientX - rect.left) / rect.width;
     audio.currentTime = Math.min(audio.duration, Math.max(0, ratio * audio.duration));
   }, []);
 
@@ -270,14 +281,18 @@ export default function QuranSection({ onToast }: { onToast: (msg: string) => vo
           </button>
         </div>
 
-        {/* أزرار التحكم */}
-        <div className="flex items-center justify-center gap-3 sm:gap-5 my-5">
-          <button onClick={() => skip(-1)} className="btn-ghost w-12 h-12 rounded-full flex items-center justify-center text-lg" aria-label="السورة السابقة" title="السورة السابقة">
+        {/* أزرار التحكم — ترتيب LTR قياسي زي كل المشغلات: السابقة شمال والتالية يمين */}
+        <div className="flex items-center justify-center gap-2 sm:gap-4 my-5" dir="ltr">
+          <button onClick={() => skip(-1)} className="btn-ghost w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center text-lg shrink-0" aria-label="السورة السابقة" title="السورة السابقة">
             ⏮
+          </button>
+          <button onClick={() => seekBy(-10)} className="btn-ghost w-10 h-10 sm:w-12 sm:h-12 rounded-full flex flex-col items-center justify-center leading-none shrink-0" aria-label="رجوع ١٠ ثواني" title="رجوع ١٠ ثواني">
+            <span className="text-base">⏪</span>
+            <span className="text-[0.5rem] font-bold mt-0.5" style={{ color: "var(--ink-dim)" }}>١٠</span>
           </button>
           <button
             onClick={togglePlay}
-            className="w-20 h-20 rounded-full flex items-center justify-center text-3xl transition-transform hover:scale-105 active:scale-95"
+            className="w-16 h-16 sm:w-20 sm:h-20 shrink-0 rounded-full flex items-center justify-center text-3xl transition-transform hover:scale-105 active:scale-95"
             style={{
               background: "var(--accent)",
               color: "var(--on-accent)",
@@ -287,11 +302,15 @@ export default function QuranSection({ onToast }: { onToast: (msg: string) => vo
           >
             {isLoading ? <span className="animate-spin inline-block">◌</span> : isPlaying ? "⏸" : "▶"}
           </button>
-          <button onClick={() => skip(1)} className="btn-ghost w-12 h-12 rounded-full flex items-center justify-center text-lg" aria-label="السورة التالية" title="السورة التالية">
+          <button onClick={() => seekBy(10)} className="btn-ghost w-10 h-10 sm:w-12 sm:h-12 rounded-full flex flex-col items-center justify-center leading-none shrink-0" aria-label="تقديم ١٠ ثواني" title="تقديم ١٠ ثواني">
+            <span className="text-base">⏩</span>
+            <span className="text-[0.5rem] font-bold mt-0.5" style={{ color: "var(--ink-dim)" }}>١٠</span>
+          </button>
+          <button onClick={() => skip(1)} className="btn-ghost w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center text-lg shrink-0" aria-label="السورة التالية" title="السورة التالية">
             ⏭
           </button>
           {(state === "playing" || state === "paused" || state === "loading") && (
-            <button onClick={stopAll} className="btn-ghost w-12 h-12 rounded-full flex items-center justify-center text-lg" aria-label="إيقاف" title="إيقاف">
+            <button onClick={stopAll} className="btn-ghost w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center text-lg shrink-0" aria-label="إيقاف" title="إيقاف">
               ⏹
             </button>
           )}
