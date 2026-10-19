@@ -52,3 +52,18 @@ prompt
 server.log
 # Skills directory
 /skills/tool-results/
+
+# ─── GitHub release: internal tooling & runtime artifacts ───
+/skills/
+/upload/
+/download/
+/tool-results/
+/.zscripts/
+/mini-services/
+/examples/
+/tests/
+/scripts/
+/worklog.md
+/Caddyfile
+/db/
+prompts/
