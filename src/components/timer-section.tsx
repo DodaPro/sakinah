@@ -9,7 +9,9 @@ import {
   challengeDays,
   clockFmt,
   courseColorVar,
+  dmOf,
   fmtDur,
+  openTasks,
   splitSession,
   toAr,
   totalStudySecs,
@@ -39,6 +41,11 @@ export default function TimerSection({
   const [manualMin, setManualMin] = useState("60");
   const [manualCat, setManualCat] = useState("");
   const [confirmLog, setConfirmLog] = useState<string | null>(null);
+  // دمج التايمر مع التاسكات: اختيار مهمة + كارت «خلصت المهمة؟» بعد الوقف
+  const [selTask, setSelTask] = useState("");
+  const [stoppedTask, setStoppedTask] = useState<{ id: string; title: string; secs: number } | null>(null);
+  const open = openTasks(planner);
+  const runningTask = planner.timer?.taskId ? planner.tasks.find((t) => t.id === planner.timer!.taskId) ?? null : null;
 
   const days = challengeDays(planner);
   const tgt = planner.target * 60;
@@ -70,6 +77,9 @@ export default function TimerSection({
   const step = Math.ceil(days.length / 15);
 
   const onStop = () => {
+    const t = planner.timer;
+    const taskId = t?.taskId;
+    const taskTitle = taskId ? planner.tasks.find((x) => x.id === taskId)?.title : null;
     const secs = api.stopTimer();
     if (!secs) {
       onToast("الجلسة قصيرة جدًا فمتسجلتش");
@@ -77,7 +87,13 @@ export default function TimerSection({
     }
     const xp = Math.floor(secs / 300);
     onToast(`⏱️ اتسجل ${fmtDur(secs)} مذاكرة${xp ? ` (+${toAr(xp)} XP)` : ""} — تقريبًا ${toAr(Math.round((secs / 3600) * 100) / 100)} ساعة`);
+    if (taskId && taskTitle) {
+      if (!wasTaskDone(taskId)) setStoppedTask({ id: taskId, title: taskTitle, secs });
+    }
   };
+
+  /** هل المهمة لسه مش متعلّمة؟ (الـ planner في الكلوزور = الحالة قبل الوقف) */
+  const wasTaskDone = (id: string) => planner.tasks.find((t) => t.id === id)?.done ?? false;
 
   const logs = [...planner.studyLog].sort((a, b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id)).slice(0, 30);
 
@@ -98,13 +114,39 @@ export default function TimerSection({
               {clockFmt(elapsed)}
             </p>
             <p className="text-sm mb-4" style={{ color: "var(--ink-dim)" }}>
-              {running ? "شغّال دلوقتي، ومكمّل حتى لو قفلت الصفحة" : "اختار المادة واضغط ابدأ"}
+              {running
+                ? "شغّال دلوقتي، ومكمّل حتى لو قفلت الصفحة"
+                : "اختار المهمة أو المادة واضغط ابدأ"}
             </p>
+            {runningTask && (
+              <p className="mb-3 animate-pop-in">
+                <span className="chip run-task-chip">📋 شغّال على: {runningTask.title}</span>
+              </p>
+            )}
             <div className="flex flex-wrap items-center justify-center md:justify-start gap-2.5">
               <select
                 className="tinput"
-                value={running ? planner.timer!.cat : manualCat || catIds[0] || "other"}
+                value={running ? planner.timer!.taskId ?? "" : selTask}
                 disabled={running}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setSelTask(v);
+                  const t = open.find((x) => x.id === v);
+                  if (t) setManualCat(t.cat); // مادة المهمة بتتحدد أوتوماتيك
+                }}
+                aria-label="المهمة المرتبطة"
+              >
+                <option value="">⏱️ بدون مهمة محددة</option>
+                {open.slice(0, 80).map((t) => (
+                  <option key={t.id} value={t.id}>
+                    📋 {t.title}{t.date !== today ? ` · ${dmOf(t.date)}` : ""}
+                  </option>
+                ))}
+              </select>
+              <select
+                className="tinput"
+                value={running ? planner.timer!.cat : manualCat || catIds[0] || "other"}
+                disabled={running || !!selTask}
                 onChange={(e) => setManualCat(e.target.value)}
                 aria-label="المادة"
               >
@@ -117,9 +159,11 @@ export default function TimerSection({
               ) : (
                 <button
                   onClick={() => {
-                    const cat = manualCat || catIds[0] || "other";
-                    api.startTimer(cat);
-                    onToast("بدأ التايمر. بالتوفيق! 💪");
+                    const cat = selTask
+                      ? open.find((x) => x.id === selTask)?.cat || catIds[0] || "other"
+                      : manualCat || catIds[0] || "other";
+                    api.startTimer(cat, selTask || undefined);
+                    onToast(selTask ? "التايمر اشتغل على المهمة 💪" : "بدأ التايمر. بالتوفيق! 💪");
                   }}
                   className="btn-accent big"
                 >
@@ -157,6 +201,38 @@ export default function TimerSection({
           </div>
         </div>
       </section>
+
+      {/* ---------- خلصت المهمة؟ (بعد وقف جلسة مرتبطة بمهمة) ---------- */}
+      {stoppedTask && (
+        <section className="glass-card p-5 stopped-card animate-pop-in" aria-label="خلصت المهمة؟">
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="text-3xl" aria-hidden>📋</span>
+            <div className="flex-1 min-w-[200px]">
+              <b className="block text-sm" style={{ color: "var(--ink)" }}>
+                ذاكرت {fmtDur(stoppedTask.secs)} على: {stoppedTask.title}
+              </b>
+              <span className="text-xs" style={{ color: "var(--ink-dim)" }}>
+                خلصت المهمة دي؟ علّم عليها وخد {toAr(5)} XP — أوكمّل عليها بعدين.
+              </span>
+            </div>
+            <div className="flex gap-2">
+              <button
+                className="btn-accent px-4 py-2 text-sm"
+                onClick={() => {
+                  api.toggleTask(stoppedTask.id, true);
+                  setStoppedTask(null);
+                  onToast(`🎉 خلصت المهمة (+${toAr(5)} XP)`);
+                }}
+              >
+                خلصتها 🎉
+              </button>
+              <button className="btn-ghost px-4 py-2 text-sm" onClick={() => setStoppedTask(null)}>
+                لسه شغالة عليها
+              </button>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* ---------- إحصائيات ---------- */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">

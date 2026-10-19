@@ -55,7 +55,7 @@ import {
   tasksXp,
   usePlanner,
 } from "@/lib/planner";
-import type { PlannerState } from "@/lib/planner";
+import type { MainTab, PlannerState } from "@/lib/planner";
 import Fireworks from "./fireworks";
 import PrayerModal from "./prayer-modal";
 import CongratsOverlay from "./congrats-overlay";
@@ -65,6 +65,8 @@ import TasbihCard from "./tasbih-card";
 import StatsSection from "./stats-section";
 import TasksSection from "./tasks-section";
 import TimerSection from "./timer-section";
+import StudySection from "./study-section";
+import AchievementsSection from "./achievements-section";
 import QuranSection from "./quran-section";
 import AnimatedBackground from "./animated-background";
 import { findReciter, ayahAudioUrl, loadReciterId } from "@/lib/quran";
@@ -142,6 +144,7 @@ export default function SakinahApp() {
     customAccent2: null,
     mood: null,
     animations: true,
+    bgAnim: true,
     adhanEnabled: true,
     adhanVoice: "madinah",
     fajrVoice: "fajr-cairo",
@@ -168,7 +171,7 @@ export default function SakinahApp() {
   const [adhanTesting, setAdhanTesting] = useState(false);
   const [athkarIdx, setAthkarIdx] = useState(0);
   const [verseIdx, setVerseIdx] = useState(0);
-  const [mainTab, setMainTab] = useState<"home" | "tasks" | "timer" | "quran">("home");
+  const [mainTab, setMainTab] = useState<MainTab>("home");
   const [badgeXp, setBadgeXp] = useState(0);
   const [, forceBadge] = useState(0);
   const [versePlaying, setVersePlaying] = useState(false);
@@ -394,7 +397,7 @@ export default function SakinahApp() {
   }, [mounted, plannerApi.plannerMounted, logs, planner, showToast]);
 
   /* ---------------- تبويب رئيسي ---------------- */
-  const switchMainTab = useCallback((t: "home" | "tasks" | "timer" | "quran") => {
+  const switchMainTab = useCallback((t: MainTab) => {
     setMainTab(t);
     saveMainTab(t);
   }, []);
@@ -624,7 +627,7 @@ export default function SakinahApp() {
               سَكِينَة
             </h1>
             <p className="text-[0.65rem]" style={{ color: "var(--ink-dim)" }}>
-              مواقيتك وأذكارك وقارئك وتاسكاتك في مكان واحد
+              مواقيتك وأذكارك وقارئك وتاسكاتك ووقت مذاكرتك في مكان واحد
             </p>
           </div>
           <div className="mr-auto flex items-center gap-2">
@@ -640,14 +643,16 @@ export default function SakinahApp() {
             </button>
           </div>
         </div>
-        {/* التنقل الرئيسي: الصلوات / القرآن / التاسكات / التايمر */}
+        {/* التنقل الرئيسي: الصلوات / القرآن / التاسكات / التايمر / وقت المذاكرة / إنجازاتي */}
         <nav className="main-tabs max-w-5xl mx-auto mt-3" role="tablist" aria-label="الأقسام الرئيسية">
           {([
             ["home", "🕌 الصلوات"],
             ["quran", "📖 القرآن"],
             ["tasks", "📋 التاسكات"],
             ["timer", "⏱️ التايمر"],
-          ] as ["home" | "tasks" | "timer" | "quran", string][]).map(([id, label]) => (
+            ["study", "📚 وقت المذاكرة"],
+            ["achv", "🏅 إنجازاتي"],
+          ] as [MainTab, string][]).map(([id, label]) => (
             <button
               key={id}
               role="tab"
@@ -662,9 +667,20 @@ export default function SakinahApp() {
 
       <main className="flex-1 w-full max-w-5xl mx-auto px-3 sm:px-4 py-5 space-y-5 relative z-10">
         {mainTab === "tasks" ? (
-          <TasksSection api={plannerApi} onToast={showToast} />
+          <TasksSection api={plannerApi} onToast={showToast} goTimer={() => switchMainTab("timer")} />
         ) : mainTab === "timer" ? (
           <TimerSection api={plannerApi} now={now} onToast={showToast} />
+        ) : mainTab === "study" ? (
+          <StudySection api={plannerApi} now={now} onToast={showToast} />
+        ) : mainTab === "achv" ? (
+          <AchievementsSection
+            api={plannerApi}
+            logs={logs}
+            xpTotal={xpTotal}
+            unlocked={unlockedAchievements}
+            streak={streak}
+            bestStreak={bestStreak.current}
+          />
         ) : mainTab === "quran" ? (
           <QuranSection onToast={showToast} />
         ) : (
@@ -895,7 +911,7 @@ export default function SakinahApp() {
           رَبَّنَا تَقَبَّلْ مِنَّا صَلَاتَنَا وَذِكْرَنَا وَسَعْيَنَا
         </p>
         <p className="text-xs" style={{ color: "var(--ink-dim)" }}>
-          صُنع بحب 🤍 — سَكِينَة | المواقيت والأذكار والقرآن والتاسكات والتايمر
+          صُنع بحب 🤍 — سَكِينَة | الصلوات والقرآن والتاسكات والتايمر ووقت المذاكرة والإنجازات
         </p>
       </footer>
 

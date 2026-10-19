@@ -16,8 +16,10 @@ import {
   dayNameOf,
   diffDays,
   dmOf,
+  fmtDur,
   isRestDay,
   plannerMetrics,
+  taskSecsOf,
   tasksOn,
   toAr,
 } from "@/lib/planner";
@@ -32,9 +34,11 @@ const PENCIL = "✏️";
 export default function TasksSection({
   api,
   onToast,
+  goTimer,
 }: {
   api: PlannerApi;
   onToast: (msg: string) => void;
+  goTimer: () => void;
 }) {
   const { planner } = api;
   const [tab, setTab] = useState<PlannerTab>(() => {
@@ -43,7 +47,7 @@ export default function TasksSection({
     return t === "plan" || t === "courses" ? t : "today";
   });
   const [day, setDay] = useState<string>("");
-  const [editing, setEditing] = useState<TaskDef | null>(null);
+  const [editing, setEditing] = useState<Pick<TaskDef, "id" | "title" | "date" | "cat"> | null>(null);
   const [confirmDel, setConfirmDel] = useState<string | null>(null);
   const [addingOn, setAddingOn] = useState<string | null>(null);
   const [cf, setCf] = useState<{ id: string | null; name: string; unit: string; total: string; from: string; to: string }>({
@@ -128,6 +132,7 @@ export default function TasksSection({
       );
     }
     const ck = planner.courses.find((c) => c.id === t.cat);
+    const secs = taskSecsOf(planner, t.id);
     return (
       <div key={t.id} className={`trow ${t.done ? "is-done" : ""}`} style={{ ["--tc" as string]: ck ? `var(--${courseColorVar(ck.ci)})` : "var(--accent)" }}>
         <label className="task">
@@ -150,6 +155,23 @@ export default function TasksSection({
           <span className="box" aria-hidden />
           <span className="tt">{t.title}</span>
         </label>
+        {secs > 0 && (
+          <span className="task-time" title="الوقت اللي ذاكرته على المهمة دي بالتايمر">⏱️ {fmtDur(secs)}</span>
+        )}
+        {!t.done && (
+          <button
+            className="task-play"
+            onClick={() => {
+              api.startTimer(t.cat, t.id);
+              onToast(`⏱️ التايمر اشتغل على: ${t.title}`);
+              goTimer();
+            }}
+            aria-label={`شغّل التايمر على مهمة ${t.title}`}
+            title="شغّل التايمر على المهمة دي — وقتها بيتجمع هنا"
+          >
+            ▶
+          </button>
+        )}
         {full && <span className={`cat-chip ${ck ? courseColorClass(ck.ci) : "ck-def"}`}>{catName(planner, t.cat)}</span>}
         <button
           className="ic"
@@ -535,6 +557,7 @@ export default function TasksSection({
 
       <p className="text-[0.68rem] text-center" style={{ color: "var(--ink-dim)" }}>
         كل حاجة بتتحفظ تلقائيًا على جهازك — كل مهمة تخلّصها بتديك {toAr(5)} XP، وكل يوم كامل بونص {toAr(15)} XP.
+        اضغط ▶ جنب أي مهمة لتشغيل التايمر عليها، والوقت بيتجمع على المهمة نفسها.
       </p>
     </div>
   );

@@ -77,11 +77,13 @@ export interface StudyLog {
   date: string; // iso
   secs: number;
   cat: string;
+  taskId?: string; // لو الجلسة مرتبطة بمهمة من التاسكات
 }
 
 export interface RunningTimer {
   start: number; // timestamp
   cat: string;
+  taskId?: string; // المهمة المرتبطة (دمج التايمر مع التاسكات)
 }
 
 export interface PlannerCfg {
@@ -198,12 +200,12 @@ export function saveBadgeXp(n: number) {
   } catch {}
 }
 
-export type MainTab = "home" | "tasks" | "timer" | "quran";
+export type MainTab = "home" | "tasks" | "timer" | "quran" | "study" | "achv";
 
 export function loadMainTab(): MainTab {
   if (typeof window === "undefined") return "home";
   const t = window.localStorage.getItem(K_MAIN_TAB);
-  return t === "tasks" || t === "timer" || t === "quran" ? t : "home";
+  return t === "tasks" || t === "timer" || t === "quran" || t === "study" || t === "achv" ? t : "home";
 }
 
 export function saveMainTab(t: MainTab) {
@@ -353,6 +355,27 @@ export function studySecsOn(state: PlannerState, d: string): number {
 
 export function totalStudySecs(state: PlannerState): number {
   return state.studyLog.reduce((a, l) => a + l.secs, 0);
+}
+
+/** الوقت المرتبط بمهمة معينة (من الجلسات المسجلة + التايمر الشغال) */
+export function taskSecsOf(state: PlannerState, taskId: string): number {
+  let s = state.studyLog.filter((l) => l.taskId === taskId).reduce((a, l) => a + l.secs, 0);
+  if (state.timer?.taskId === taskId) {
+    s += splitSession(state.timer.start, Date.now()).reduce((a, x) => a + x.secs, 0);
+  }
+  return s;
+}
+
+/** المهام اللي لسه ما خلصتش (مرتبة بالتاريخ) — لتشغيل التايمر عليها */
+export function openTasks(state: PlannerState): TaskDef[] {
+  const today = dayKey();
+  return state.tasks
+    .filter((t) => !t.done)
+    .sort((a, b) =>
+      (a.date < today ? "1" : a.date) === (b.date < today ? "1" : b.date)
+        ? a.date.localeCompare(b.date)
+        : (a.date < today ? "1" : a.date).localeCompare(b.date < today ? "1" : b.date)
+    );
 }
 
 /* ---------------- مقاييس التخطيط ---------------- */
@@ -602,9 +625,9 @@ export function usePlanner() {
   );
 
   const startTimer = useCallback(
-    (cat: string) => {
+    (cat: string, taskId?: string) => {
       mutate((d) => {
-        if (!d.timer) d.timer = { start: Date.now(), cat };
+        if (!d.timer) d.timer = { start: Date.now(), cat, ...(taskId ? { taskId } : {}) };
       });
     },
     [mutate]
@@ -626,16 +649,28 @@ export function usePlanner() {
     mutate((d) => {
       d.timer = null;
       parts.forEach((x) =>
-        d.studyLog.push({ id: uid(), date: x.date, secs: Math.round(x.secs), cat: T.cat })
+        d.studyLog.push({
+          id: uid(),
+          date: x.date,
+          secs: Math.round(x.secs),
+          cat: T.cat,
+          ...(T.taskId ? { taskId: T.taskId } : {}),
+        })
       );
     });
     return Math.round(total);
   }, [mutate]);
 
   const addManualTime = useCallback(
-    (date: string, mins: number, cat: string) => {
+    (date: string, mins: number, cat: string, taskId?: string) => {
       mutate((d) => {
-        d.studyLog.push({ id: uid(), date, secs: Math.round(mins * 60), cat });
+        d.studyLog.push({
+          id: uid(),
+          date,
+          secs: Math.round(mins * 60),
+          cat,
+          ...(taskId ? { taskId } : {}),
+        });
       });
     },
     [mutate]
