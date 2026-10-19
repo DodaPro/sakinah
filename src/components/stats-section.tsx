@@ -65,7 +65,7 @@ export default function StatsSection({
         </h3>
       </div>
 
-      <div className="flex flex-col sm:flex-row items-center gap-6">
+      <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-5">
         {/* حلقة التقدم */}
         <div className="relative w-32 h-32 shrink-0" role="img" aria-label={`أديت ${done} من ٥ صلوات اليوم`}>
           <svg viewBox="0 0 120 120" className="w-full h-full -rotate-90">
@@ -91,9 +91,9 @@ export default function StatsSection({
           </div>
         </div>
 
-        <div className="flex-1 w-full space-y-4">
+        <div className="flex-1 w-full min-w-[240px] space-y-4">
           {/* السلاسل */}
-          <div className="flex gap-3">
+          <div className="flex flex-wrap justify-center gap-3">
             <div className="chip !rounded-2xl px-4 py-2.5 flex items-center gap-2" style={{ fontSize: "0.85rem" }}>
               🔥 <b style={{ color: "var(--accent)" }}>{toArabicDigits(streak)}</b> يوم متتالي
             </div>
@@ -104,7 +104,7 @@ export default function StatsSection({
 
           {/* شريط XP */}
           <div>
-            <div className="flex justify-between text-xs mb-1.5" style={{ color: "var(--ink-dim)" }}>
+            <div className="flex flex-wrap justify-between gap-x-3 gap-y-1 text-xs mb-1.5" style={{ color: "var(--ink-dim)" }}>
               <span>
                 المستوى <b style={{ color: "var(--accent)" }}>{toArabicDigits(xp.level)}</b> — {LEVEL_TITLES[Math.min(xp.level - 1, LEVEL_TITLES.length - 1)]}
               </span>
@@ -132,7 +132,7 @@ export default function StatsSection({
                 >
                   {day.label}
                 </span>
-                <div className="flex gap-1.5 flex-1">
+                <div className="flex gap-1.5 flex-1 min-w-0">
                   {PRAYER_ORDER.map((p) => (
                     <span
                       key={p}

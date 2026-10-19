@@ -851,7 +851,7 @@ export default function SakinahApp() {
         </section>
 
         {/* ---------------- الإحصائيات + القبلة + السبحة ---------------- */}
-        <section className="grid lg:grid-cols-3 md:grid-cols-2 gap-4">
+        <section className="grid lg:grid-cols-3 md:grid-cols-2 gap-4 [&>*]:min-w-0">
           <StatsSection logs={logs} streak={streak} bestStreak={bestStreak.current} todayKey={nowKey} />
           <QiblaCompass lat={settings.lat} lng={settings.lng} />
           <TasbihCard />
