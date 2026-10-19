@@ -200,12 +200,21 @@ export function saveBadgeXp(n: number) {
   } catch {}
 }
 
-export type MainTab = "home" | "focus" | "quran" | "achv";
+export type MainTab = "home" | "focus" | "quran" | "achv" | "azkar" | "hisn" | "wird" | "notes";
 
 export function loadMainTab(): MainTab {
   if (typeof window === "undefined") return "home";
   const t = window.localStorage.getItem(K_MAIN_TAB);
-  if (t === "focus" || t === "quran" || t === "achv") return t;
+  if (
+    t === "focus" ||
+    t === "quran" ||
+    t === "achv" ||
+    t === "azkar" ||
+    t === "hisn" ||
+    t === "wird" ||
+    t === "notes"
+  )
+    return t;
   // التبويبات القديمة (tasks/timer/study) بقت كلها داخل قسم واحد موحّد اسمه focus
   if (t === "tasks" || t === "timer" || t === "study") return "focus";
   return "home";

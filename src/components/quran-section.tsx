@@ -30,6 +30,13 @@ function formatTime(sec: number): string {
   return `${m}:${String(s).padStart(2, "0")}`;
 }
 
+/** إبلاغ بقية التطبيق بحالة صوت القرآن (عشان تلاوة الآية التلقائية ما تتداخلش) */
+function emitQuranPlaying(playing: boolean) {
+  try {
+    window.dispatchEvent(new CustomEvent("sakinah:quran-playing", { detail: { playing } }));
+  } catch {}
+}
+
 export default function QuranSection({ onToast }: { onToast: (msg: string) => void }) {
   const [reciterId, setReciterId] = useState(DEFAULT_RECITER_ID);
   const [surahNum, setSurahNum] = useState(1);
@@ -86,10 +93,14 @@ export default function QuranSection({ onToast }: { onToast: (msg: string) => vo
       setCurrent({ surah: surahN, reciter: rec.id });
       audio
         .play()
-        .then(() => setState("playing"))
+        .then(() => {
+          setState("playing");
+          emitQuranPlaying(true);
+        })
         .catch(() => {
           // غالبًا السياسة تمنع التشغيل التلقائي أو انقطع النت
           setState("error");
+          emitQuranPlaying(false);
           onToast("⚠️ مش قادر يشغّل التلاوة — اتأكد من النت وجرب تاني");
         });
     },
@@ -113,12 +124,19 @@ export default function QuranSection({ onToast }: { onToast: (msg: string) => vo
       } else {
         audio
           .play()
-          .then(() => setState("playing"))
-          .catch(() => setState("error"));
+          .then(() => {
+            setState("playing");
+            emitQuranPlaying(true);
+          })
+          .catch(() => {
+            setState("error");
+            emitQuranPlaying(false);
+          });
       }
     } else {
       audio.pause();
       setState("paused");
+      emitQuranPlaying(false);
     }
   }, [current, surahNum, reciterId, reciter, play]);
 
@@ -131,6 +149,7 @@ export default function QuranSection({ onToast }: { onToast: (msg: string) => vo
     setState("idle");
     setProgress(0);
     setCurrentTime(0);
+    emitQuranPlaying(false);
   }, []);
 
   const skip = useCallback(
@@ -165,6 +184,7 @@ export default function QuranSection({ onToast }: { onToast: (msg: string) => vo
       }
     };
     const onEnded = () => {
+      emitQuranPlaying(false);
       if (autoNext && current) {
         const nextN = current.surah >= 114 ? 1 : current.surah + 1;
         const rec = findReciter(current.reciter);
@@ -179,6 +199,7 @@ export default function QuranSection({ onToast }: { onToast: (msg: string) => vo
     };
     const onErr = () => {
       setState("error");
+      emitQuranPlaying(false);
     };
     audio.addEventListener("timeupdate", onTime);
     audio.addEventListener("ended", onEnded);

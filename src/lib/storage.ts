@@ -24,6 +24,8 @@ export interface AppSettings {
   lng: number;
   calcMethod: string;
   timeFormat: 12 | 24;
+  /** تشغيل تلاوة الآية المتجددة تلقائيًا كل دقيقة */
+  verseRecite: boolean;
 }
 
 export type DayLog = Record<PrayerKey, boolean>;
@@ -47,6 +49,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   lng: 31.2357,
   calcMethod: "egyptian",
   timeFormat: 12,
+  verseRecite: true,
 };
 
 export interface PromptedMap {
@@ -214,6 +217,10 @@ export function resetAllData() {
     K_ACHIEVEMENTS,
     K_BEST_STREAK,
     K_TASBIH,
+    // بيانات الأقسام الجديدة
+    "sakinah.azkar",
+    "sakinah.wird",
+    "sakinah.notes",
   ].forEach((k) => {
     try {
       window.localStorage.removeItem(k);

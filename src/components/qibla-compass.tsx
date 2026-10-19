@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import geomagnetism from "geomagnetism";
 import { qiblaBearing, toArabicDigits } from "@/lib/prayer";
 
 /**
@@ -9,24 +10,50 @@ import { qiblaBearing, toArabicDigits } from "@/lib/prayer";
  */
 export default function QiblaCompass({ lat, lng }: { lat: number; lng: number }) {
   const bearing = useMemo(() => qiblaBearing(lat, lng), [lat, lng]);
+  // الانحراف المغناطيسي لموقعك — بوصلة الجهاز بتقرأ الشمال المغناطيسي،
+  // واحنا بنحسب اتجاه القبلة من الشمال الحقيقي — في مصر الانحراف ≈ +٤.٨° شرق
+  // وهي دي بالظبط سبب ميل الإبرة لليمين قليلًا — بنصححه هنا
+  const declination = useMemo(() => {
+    try {
+      return geomagnetism.model().point([lat, lng]).decl;
+    } catch {
+      return 0;
+    }
+  }, [lat, lng]);
   const [heading, setHeading] = useState<number | null>(null);
   const [sensorState, setSensorState] = useState<"idle" | "active" | "denied">("idle");
 
   useEffect(() => {
     if (sensorState !== "active") return;
 
-    const handler = (e: DeviceOrientationEvent) => {
+    // بنفضّل حدث deviceorientationabsolute (أندرويد) عشان الشمال يكون ثابت مش نسبي
+    let absoluteSeen = false;
+
+    const extract = (e: DeviceOrientationEvent): number | null => {
       const webkit = (e as DeviceOrientationEvent & { webkitCompassHeading?: number })
         .webkitCompassHeading;
-      if (typeof webkit === "number") {
-        setHeading(webkit);
-      } else if (e.alpha !== null && e.alpha !== undefined) {
-        setHeading(360 - e.alpha);
-      }
+      if (typeof webkit === "number") return webkit; // آيفون: مغناطيسي بالفعل
+      if (e.alpha !== null && e.alpha !== undefined) return 360 - e.alpha; // مغناطيسي (عكس عقارب)
+      return null;
     };
 
-    window.addEventListener("deviceorientation", handler, true);
-    return () => window.removeEventListener("deviceorientation", handler, true);
+    const onAbsolute = (e: Event) => {
+      absoluteSeen = true;
+      const h = extract(e as DeviceOrientationEvent);
+      if (h !== null) setHeading(h);
+    };
+    const onOrientation = (e: Event) => {
+      if (absoluteSeen) return; // نتجاهل النسبي لو فيه absolute
+      const h = extract(e as DeviceOrientationEvent);
+      if (h !== null) setHeading(h);
+    };
+
+    window.addEventListener("deviceorientationabsolute", onAbsolute, true);
+    window.addEventListener("deviceorientation", onOrientation, true);
+    return () => {
+      window.removeEventListener("deviceorientationabsolute", onAbsolute, true);
+      window.removeEventListener("deviceorientation", onOrientation, true);
+    };
   }, [sensorState]);
 
   const startCompass = async () => {
@@ -47,8 +74,9 @@ export default function QiblaCompass({ lat, lng }: { lat: number; lng: number })
     }
   };
 
-  // زاوية الإبرة: بدون حساس = الاتجاه من الشمال، مع حساس = الاتجاه - درجة الجهاز
-  const needleDeg = heading !== null ? bearing - heading : bearing;
+  // زاوية الإبرة: بدون حساس = الاتجاه من الشمال،
+  // مع حساس = الاتجاه − درجة الجهاز − الانحراف المغناطيسي (تصحيح الميل)
+  const needleDeg = heading !== null ? bearing - heading - declination : bearing;
 
   return (
     <div className="glass-card p-5 sm:p-6 flex flex-col items-center gap-4">
@@ -59,7 +87,7 @@ export default function QiblaCompass({ lat, lng }: { lat: number; lng: number })
         </h3>
       </div>
 
-      <div className="relative w-44 h-44 sm:w-52 sm:h-52" role="img" aria-label={`بوصلة القبلة، الاتجاه ${Math.round(bearing)} درجة من الشمال`}>
+      <div className="relative w-44 h-44 sm:w-52 sm:h-52" role="img" aria-label={`بوصلة القبلة، الاتجاه ${Math.round(bearing)} درجة من الشمال الحقيقي`}>
         {/* قرص البوصلة */}
         <div
           className="absolute inset-0 rounded-full border-2 animate-spin-slow"
@@ -122,6 +150,9 @@ export default function QiblaCompass({ lat, lng }: { lat: number; lng: number })
             {toArabicDigits(Math.round(bearing))}°
           </span>{" "}
           من الشمال
+        </p>
+        <p className="text-xs" style={{ color: "var(--ink-dim)" }}>
+          🧲 بتصحّح الانحراف المغناطيسي تلقائيًا حسب موقعك ({toArabicDigits(Math.round(declination))}°)
         </p>
         {sensorState !== "active" ? (
           <button onClick={startCompass} className="btn-ghost px-4 py-1.5 text-sm w-full">

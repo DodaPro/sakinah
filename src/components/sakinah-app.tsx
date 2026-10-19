@@ -66,6 +66,10 @@ import StatsSection from "./stats-section";
 import FocusSection from "./focus-section";
 import AchievementsSection from "./achievements-section";
 import QuranSection from "./quran-section";
+import AzkarSection from "./azkar-section";
+import HisnSection from "./hisn-section";
+import WirdSection from "./wird-section";
+import NotesSection from "./notes-section";
 import AnimatedBackground from "./animated-background";
 import { findReciter, ayahAudioUrl, loadReciterId } from "@/lib/quran";
 
@@ -174,6 +178,10 @@ export default function SakinahApp() {
   const [, forceBadge] = useState(0);
   const [versePlaying, setVersePlaying] = useState(false);
   const verseAudioRef = useRef<HTMLAudioElement | null>(null);
+  const mainTabRef = useRef(mainTab);
+  mainTabRef.current = mainTab;
+  const quranBusyRef = useRef(false);
+  const firstVerseRun = useRef(true);
 
   const plannerApi = usePlanner();
   const { planner } = plannerApi;
@@ -184,6 +192,8 @@ export default function SakinahApp() {
   const settingsRef = useRef(settings);
   settingsRef.current = settings;
   const player = useAdhanPlayer();
+  const playerRef = useRef(player);
+  playerRef.current = player;
 
   const bestStreak = useRef(0);
   const [, forceBest] = useState(0);
@@ -237,6 +247,15 @@ export default function SakinahApp() {
     const h = () => setAdhanBlocked(true);
     window.addEventListener("adhan-blocked", h);
     return () => window.removeEventListener("adhan-blocked", h);
+  }, []);
+
+  /* ---------------- استماع لحالة صوت القرآن (لمنع تداخل التلاوة مع الآية) ---------------- */
+  useEffect(() => {
+    const h = (e: Event) => {
+      quranBusyRef.current = !!(e as CustomEvent).detail?.playing;
+    };
+    window.addEventListener("sakinah:quran-playing", h);
+    return () => window.removeEventListener("sakinah:quran-playing", h);
   }, []);
 
   /* ---------------- المواقيت ---------------- */
@@ -510,6 +529,40 @@ export default function SakinahApp() {
     };
   }, []);
 
+  /* ---------------- تلاوة الآية تلقائيًا مع كل آية جديدة (اختياري من الإعدادات) ---------------- */
+  useEffect(() => {
+    if (!mounted) return;
+    if (firstVerseRun.current) {
+      firstVerseRun.current = false;
+      return;
+    }
+    const s = settingsRef.current;
+    if (!s.verseRecite) return;
+    if (mainTabRef.current !== "home") return;
+    if (typeof document !== "undefined" && document.hidden) return;
+    if (quranBusyRef.current || playerRef.current.isPlaying()) return;
+    const verse = VERSES[verseIdx];
+    if (!verse?.s || !verse?.a) return;
+    const rec = findReciter(loadReciterId());
+    const url = ayahAudioUrl(rec, verse.s, verse.a);
+    if (!url) return;
+    try {
+      verseAudioRef.current?.pause();
+    } catch {}
+    const audio = new Audio(url);
+    verseAudioRef.current = audio;
+    setVersePlaying(true);
+    // لو المتصفح منع التشغيل التلقائي — نسيّبها بهدوء، الزر اليدوي موجود
+    audio.play().catch(() => {
+      setVersePlaying(false);
+      verseAudioRef.current = null;
+    });
+    audio.onended = () => {
+      setVersePlaying(false);
+      verseAudioRef.current = null;
+    };
+  }, [verseIdx, mounted]);
+
   const confirmAction = useCallback(() => {
     if (!confirm) return;
     const tk = dayKey(new Date());
@@ -624,8 +677,8 @@ export default function SakinahApp() {
             <h1 className="font-extrabold text-lg" style={{ color: "var(--ink)" }}>
               سَكِينَة
             </h1>
-            <p className="text-[0.65rem]" style={{ color: "var(--ink-dim)" }}>
-              مواقيتك وأذكارك وقارئك وتاسكاتك ووقت مذاكرتك في مكان واحد
+            <p className="text-[0.65rem]" style={{ color: "var(--ink-dim)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "46vw" }}>
+              مواقيتك وأذكارك وقارئك ووردك وتاسكاتك وملاحظاتك في مكان واحد
             </p>
           </div>
           <div className="mr-auto flex items-center gap-2">
@@ -646,8 +699,12 @@ export default function SakinahApp() {
           {([
             ["home", "🕌 الصلوات"],
             ["quran", "📖 القرآن"],
-            ["focus", "⏱️ التاسكات والتايمر"],
-            ["achv", "🏅 إنجازاتي"],
+            ["azkar", "🤲 الأذكار"],
+            ["hisn", "🏰 الحصن"],
+            ["wird", "📗 الورد"],
+            ["focus", "⏱️ التاسكات"],
+            ["notes", "📝 ملاحظاتي"],
+            ["achv", "🏅 الإنجازات"],
           ] as [MainTab, string][]).map(([id, label]) => (
             <button
               key={id}
@@ -675,6 +732,17 @@ export default function SakinahApp() {
           />
         ) : mainTab === "quran" ? (
           <QuranSection onToast={showToast} />
+        ) : mainTab === "azkar" ? (
+          <AzkarSection onToast={showToast} />
+        ) : mainTab === "hisn" ? (
+          <HisnSection />
+        ) : mainTab === "wird" ? (
+          <WirdSection
+            onToast={showToast}
+            onCelebrate={() => setFireworksOn(settingsRef.current.animations)}
+          />
+        ) : mainTab === "notes" ? (
+          <NotesSection onToast={showToast} />
         ) : (
           <>
         {/* ---------------- بطاقة الصلاة القادمة ---------------- */}
@@ -903,7 +971,7 @@ export default function SakinahApp() {
           رَبَّنَا تَقَبَّلْ مِنَّا صَلَاتَنَا وَذِكْرَنَا وَسَعْيَنَا
         </p>
         <p className="text-xs" style={{ color: "var(--ink-dim)" }}>
-          صُنع بحب 🤍 — سَكِينَة | الصلوات والقرآن والتاسكات والتايمر ووقت المذاكرة والإنجازات
+          صُنع بحب 🤍 — سَكِينَة | الصلوات والقرآن والأذكار والحصن والورد والتاسكات والملاحظات والإنجازات
         </p>
       </footer>
 

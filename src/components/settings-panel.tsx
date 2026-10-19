@@ -4,8 +4,9 @@ import { useState } from "react";
 import { ADHAN_VOICES, ACHIEVEMENTS, CALC_METHODS, CITIES, LEVEL_TITLES, MOODS, THEMES } from "@/lib/data";
 import type { AppSettings } from "@/lib/storage";
 import { toArabicDigits } from "@/lib/prayer";
+import { notifySupported, pushNotification, requestNotifyPermission } from "@/lib/notify";
 
-type Tab = "appearance" | "adhan" | "location" | "data";
+type Tab = "appearance" | "adhan" | "quran" | "location" | "data";
 
 function Switch({
   checked,
@@ -108,12 +109,14 @@ export default function SettingsPanel({
 }) {
   const [tab, setTab] = useState<Tab>("appearance");
   const [confirmReset, setConfirmReset] = useState(false);
+  const [perm, setPerm] = useState<string>(() => (notifySupported() ? Notification.permission : "unsupported"));
 
   if (!open) return null;
 
   const tabs: { id: Tab; label: string; icon: string }[] = [
     { id: "appearance", label: "المظهر", icon: "🎨" },
     { id: "adhan", label: "الأذان", icon: "🔊" },
+    { id: "quran", label: "القرآن", icon: "📖" },
     { id: "location", label: "الموقع", icon: "📍" },
     { id: "data", label: "بياناتي", icon: "💾" },
   ];
@@ -330,10 +333,46 @@ export default function SettingsPanel({
 
               <Switch
                 checked={settings.notifications}
-                onChange={(v) => onChange({ notifications: v })}
-                label="🔔 إشعارات المتصفح"
-                hint="تنبيه حتى لو التاب مفتوح في الخلفية"
+                onChange={(v) => {
+                  onChange({ notifications: v });
+                  if (v) requestNotifyPermission().then(setPerm);
+                }}
+                label="🔔 تذكير الأذان (إشعارات المتصفح)"
+                hint="إشعار قبل الأذان وعند أذان كل صلاة — حتى لو التاب مفتوح في الخلفية"
               />
+
+              {settings.notifications && (
+                <div className="p-3.5 rounded-2xl space-y-2" style={{ background: "var(--surface)", border: "1px solid var(--surface-border)" }}>
+                  <p
+                    className="text-xs font-bold"
+                    style={{
+                      color:
+                        perm === "granted" ? "var(--accent)" : perm === "denied" ? "#f87171" : "var(--ink-dim)",
+                    }}
+                  >
+                    {perm === "granted" && "✅ الإشعارات مسموحة — التذكيرات هتوصلك تمام"}
+                    {perm === "denied" && "⚠️ الإشعارات مرفوضة — افتح إعدادات المتصفح واسمح بها للموقع ده"}
+                    {perm === "default" && "⏳ محتاج سماح منك مرة واحدة بس"}
+                    {perm === "unsupported" && "ℹ️ المتصفح ده مش بيدعم إشعارات النظام — هيوصلك التنبيه جوه الموقع"}
+                  </p>
+                  {perm === "default" && (
+                    <button
+                      onClick={async () => setPerm(await requestNotifyPermission())}
+                      className="btn-accent w-full py-2 text-sm"
+                    >
+                      🔓 اسمح بالإشعارات دلوقتي
+                    </button>
+                  )}
+                  {perm === "granted" && (
+                    <button
+                      onClick={() => pushNotification("🕌 تجربة إشعارات سَكِينَة", "كده التذكيرات هتوصلك تمام ✅")}
+                      className="btn-ghost w-full py-2 text-xs"
+                    >
+                      🔔 جرّب إشعار تجريبي
+                    </button>
+                  )}
+                </div>
+              )}
 
               <SelectField
                 label="⏰ تنبيه مبكر قبل الأذان"
@@ -346,6 +385,27 @@ export default function SettingsPanel({
                   { value: "15", label: "قبل الأذان بـ ١٥ دقيقة" },
                 ]}
               />
+            </>
+          )}
+
+          {tab === "quran" && (
+            <>
+              <Switch
+                checked={settings.verseRecite}
+                onChange={(v) => onChange({ verseRecite: v })}
+                label="🎙️ تلاوة الآية المتجددة تلقائيًا"
+                hint="أول ما الآية الجديدة تظهر كل دقيقة يشتغل صوت تلاوتها لوحدها — بدون ما تدوس اسمع"
+              />
+              <div
+                className="p-3.5 rounded-2xl text-xs leading-relaxed"
+                style={{ background: "var(--surface)", border: "1px solid var(--surface-border)", color: "var(--ink-dim)" }}
+              >
+                القارئ هو نفس القارئ المختار في تبويب القرآن — ولو القارئ مفيش ليه آيات مفردة،
+                زرار «اسمع الآية» اليدوي شغال عادي.
+                <br />
+                التلاوة التلقائية بتشتغل وأنت في تبويب الصلوات، وبتستنى لو قارئ القرآن شغال عندك
+                عشان ميبقاش صوتين فوق بعض.
+              </div>
             </>
           )}
 
