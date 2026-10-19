@@ -1,0 +1,543 @@
+   460→   460→    setActivePrayer(null);
+   461→   461→    player.stop();
+   462→   462→    showToast("💚 ربنا يقوّيك — لما تخلّص صلاتك اضغط على كارت الصلاة لتسجيلها");
+   463→   463→  }, [activePrayer, player, showToast]);
+   464→   464→
+   465→   465→  const onSnooze = useCallback(() => {
+   466→   466→    if (!activePrayer) return;
+   467→   467→    snoozeRef.current[activePrayer] = Date.now() + SNOOZE_MS;
+   468→   468→    setActivePrayer(null);
+   469→   469→    player.stop();
+   470→   470→    showToast(`💤 تمام، هنفكّرك تاني بعد ${toArabicDigits(10)} دقايق`);
+   471→   471→  }, [activePrayer, player, showToast]);
+   472→   472→
+   473→   473→  /* ---------------- تشغيل تلاوة الآية (بالقارئ المختار في القرآن) ---------------- */
+   474→   474→  const toggleVerseAudio = useCallback(() => {
+   475→   475→    const verse = VERSES[verseIdx];
+   476→   476→    if (!verse?.s || !verse?.a) return;
+   477→   477→    if (verseAudioRef.current) {
+   478→   478→      verseAudioRef.current.pause();
+   479→   479→      verseAudioRef.current = null;
+   480→   480→      setVersePlaying(false);
+   481→   481→      if (versePlaying) return;
+   482→   482→    }
+   483→   483→    const rec = findReciter(loadReciterId());
+   484→   484→    const url = ayahAudioUrl(rec, verse.s, verse.a);
+   485→   485→    if (!url) {
+   486→   486→      showToast("🎙️ القارئ دا مفيش ليه صوت آية مفردة — اختار قارئ تاني من تبويب القرآن");
+   487→   487→      return;
+   488→   488→    }
+   489→   489→    const audio = new Audio(url);
+   490→   490→    verseAudioRef.current = audio;
+   491→   491→    setVersePlaying(true);
+   492→   492→    audio.play().catch(() => {
+   493→   493→      setVersePlaying(false);
+   494→   494→      verseAudioRef.current = null;
+   495→   495→      showToast("⚠️ مش قادر يشغّل الآية — اتأكد من النت");
+   496→   496→    });
+   497→   497→    audio.onended = () => {
+   498→   498→      setVersePlaying(false);
+   499→   499→      verseAudioRef.current = null;
+   500→   500→    };
+   501→   501→  }, [verseIdx, versePlaying, showToast]);
+   502→   502→
+   503→   503→  useEffect(() => {
+   504→   504→    return () => {
+   505→   505→      if (verseAudioRef.current) {
+   506→   506→        verseAudioRef.current.pause();
+   507→   507→        verseAudioRef.current = null;
+   508→   508→      }
+   509→   509→    };
+   510→   510→  }, []);
+   511→   511→
+   512→   512→  const confirmAction = useCallback(() => {
+   513→   513→    if (!confirm) return;
+   514→   514→    const tk = dayKey(new Date());
+   515→   515→    if (confirm.action === "mark") {
+   516→   516→      commitPrayer(confirm.key, "manual");
+   517→   517→      showToast(`✅ تسجّلت صلاة ${PRAYER_NAMES[confirm.key]} — تقبّل الله`);
+   518→   518→    } else {
+   519→   519→      const dayLog = getDayLog(logs, tk);
+   520→   520→      dayLog[confirm.key] = false;
+   521→   521→      const updated = { ...logs, [tk]: dayLog };
+   522→   522→      setLogs(updated);
+   523→   523→      saveLogs(updated);
+   524→   524→      showToast(`تم إلغاء تسجيل صلاة ${PRAYER_NAMES[confirm.key]}`);
+   525→   525→    }
+   526→   526→    setConfirm(null);
+   527→   527→  }, [confirm, logs, commitPrayer, showToast]);
+   528→   528→
+   529→   529→  const onCardClick = useCallback(
+   530→   530→    (key: PrayerKey) => {
+   531→   531→      if (!times) return;
+   532→   532→      const tk = nowKey;
+   533→   533→      if (getDayLog(logs, tk)[key]) {
+   534→   534→        setConfirm({ key, action: "unmark" });
+   535→   535→      } else if (times[key] <= now) {
+   536→   536→        setConfirm({ key, action: "mark" });
+   537→   537→      } else {
+   538→   538→        showToast(`🤍 صلاة ${PRAYER_NAMES[key]} وقتها لسه ما جهش — استنى الأذان`);
+   539→   539→      }
+   540→   540→    },
+   541→   541→    [times, logs, nowKey, showToast]
+   542→   542→  );
+   543→   543→
+   544→   544→  /* ---------------- عرض ---------------- */
+   545→   545→  const dateLine = useMemo(() => formatDateLine(now), [nowKey]);
+   546→   546→  const countdown = next ? formatCountdown(next.at.getTime() - now.getTime()) : null;
+   547→   547→  const nextName = next ? (next.key === "dhuhr" && now.getDay() === 5 ? "الجمعة" : PRAYER_NAMES[next.key]) : "";
+   548→   548→
+   549→   549→  // نسبة حلقة العد التنازلي
+   550→   550→  const ringProgress = useMemo(() => {
+   551→   551→    if (!times || !next) return 0;
+   552→   552→    const order = FARD_KEYS;
+   553→   553→    const idx = order.indexOf(next.key);
+   554→   554→    let prevAt: number;
+   555→   555→    if (idx === 0) {
+   556→   556→      // الفجر: السابق هو إشفاق العشاء (تقريبًا عشاء أمس)
+   557→   557→      prevAt = times.isha.getTime() - 24 * 3600 * 1000;
+   558→   558→    } else {
+   559→   559→      prevAt = times[order[idx - 1]].getTime();
+   560→   560→    }
+   561→   561→    const total = next.at.getTime() - prevAt;
+   562→   562→    const elapsed = now.getTime() - prevAt;
+   563→   563→    return Math.min(1, Math.max(0, elapsed / total));
+   564→   564→  }, [times, next, now]);
+   565→   565→
+   566→   566→  const todayLog = mounted ? getDayLog(logs, nowKey) : emptyDayLog();
+   567→   567→  const streak = mounted ? currentStreak(logs) : 0;
+   568→   568→  const totalPrayersCount = mounted
+   569→   569→    ? Object.values(logs).reduce((a, log) => a + dayCount(log), 0)
+   570→   570→    : 0;
+   571→   571→  const xpPrayers = mounted
+   572→   572→    ? Object.values(logs).reduce(
+   573→   573→        (a, log) => a + dayCount(log) * 10 + (dayCount(log) >= 5 ? 25 : 0),
+   574→   574→        0
+   575→   575→      )
+   576→   576→    : 0;
+   577→   577→  // XP الموحد: صلوات + تاسكات + مذاكرة + بونص الأوسمة (الدمج الكامل)
+   578→   578→  const xpTotal = mounted
+   579→   579→    ? xpPrayers + tasksXp(planner) + studyXp(planner) + badgeXp
+   580→   580→    : 0;
+   581→   581→  const unlockedAchievements = mounted ? checkAchievements(logs, planner, bestStreak.current) : [];
+   582→   582→  const cityName =
+   583→   583→    settings.city === "custom"
+   584→   584→      ? "موقعي الحالي"
+   585→   585→      : CITIES.find((c) => c.id === settings.city)?.name ?? "القاهرة";
+   586→   586→  const hour12 = settings.timeFormat === 12;
+   587→   587→  const adhanTestingVoice =
+   588→   588→    ADHAN_VOICES.find((v) => v.id === settings.adhanVoice) ?? ADHAN_VOICES[0];
+   589→   589→
+   590→   590→  if (!mounted) {
+   591→   591→    return (
+   592→   592→      <div className="min-h-screen flex flex-col items-center justify-center gap-6 text-center p-6">
+   593→   593→        <div className="text-7xl animate-float">🕌</div>
+   594→   594→        <p className="font-quran text-2xl" style={{ color: "var(--accent2)" }}>
+   595→   595→          بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
+   596→   596→        </p>
+   597→   597→        <p className="text-sm" style={{ color: "var(--ink-dim)" }}>
+   598→   598→          جاري تحميل مواقيتك وأذكارك…
+   599→   599→        </p>
+   600→   600→        <div
+   601→   601→          className="w-10 h-10 rounded-full border-2 animate-spin"
+   602→   602→          style={{ borderColor: "var(--surface-border)", borderTopColor: "var(--accent)" }}
+   603→   603→        />
+   604→   604→      </div>
+   605→   605→    );
+   606→   606→  }
+   607→   607→
+   608→   608→  return (
+   609→   609→    <div className="min-h-screen flex flex-col relative overflow-x-clip">
+   610→   610→      {/* أنميشن الخلفية: نجوم وهالات */}
+   611→   611→      <AnimatedBackground enabled={settings.animations && settings.bgAnim} />
+   612→   612→
+   613→   613→      {/* زخارف خلفية */}
+   614→   614→      <div className="ornament w-[420px] h-[420px] -top-32 -right-32" />
+   615→   615→      <div className="ornament w-[300px] h-[300px] top-1/2 -left-24" style={{ animationDelay: "2s" }} />
+   616→   616→      <div className="ornament w-[260px] h-[260px] bottom-10 right-1/4" style={{ animationDelay: "4s" }} />
+   617→   617→
+   618→   618→      {/* الهيدر */}
+   619→   619→      <header className="sticky top-0 z-40 px-4 py-3" style={{ background: "color-mix(in srgb, var(--bg1) 75%, transparent)", backdropFilter: "blur(14px)", borderBottom: "1px solid var(--surface-border)" }}>
+   620→   620→        <div className="max-w-5xl mx-auto flex items-center gap-3">
+   621→   621→          <div className="text-3xl" aria-hidden>🕌</div>
+   622→   622→          <div className="leading-tight">
+   623→   623→            <h1 className="font-extrabold text-lg" style={{ color: "var(--ink)" }}>
+   624→   624→              سَكِينَة
+   625→   625→            </h1>
+   626→   626→            <p className="text-[0.65rem]" style={{ color: "var(--ink-dim)" }}>
+   627→   627→              مواقيتك وأذكارك وقارئك وتاسكاتك في مكان واحد
+   628→   628→            </p>
+   629→   629→          </div>
+   630→   630→          <div className="mr-auto flex items-center gap-2">
+   631→   631→            <span className="chip hidden sm:inline-flex items-center gap-1.5" title="نقاط الخبرة الموحدة">
+   632→   632→              ✨ {toArabicDigits(xpTotal)} XP
+   633→   633→            </span>
+   634→   634→            <button
+   635→   635→              onClick={() => setSettingsOpen(true)}
+   636→   636→              className="btn-ghost w-11 h-11 flex items-center justify-center text-xl"
+   637→   637→              aria-label="فتح الإعدادات"
+   638→   638→            >
+   639→   639→              ⚙️
+   640→   640→            </button>
+   641→   641→          </div>
+   642→   642→        </div>
+   643→   643→        {/* التنقل الرئيسي: الصلوات / القرآن / التاسكات / التايمر */}
+   644→   644→        <nav className="main-tabs max-w-5xl mx-auto mt-3" role="tablist" aria-label="الأقسام الرئيسية">
+   645→   645→          {([
+   646→   646→            ["home", "🕌 الصلوات"],
+   647→   647→            ["quran", "📖 القرآن"],
+   648→   648→            ["tasks", "📋 التاسكات"],
+   649→   649→            ["timer", "⏱️ التايمر"],
+   650→   650→          ] as ["home" | "tasks" | "timer" | "quran", string][]).map(([id, label]) => (
+   651→   651→            <button
+   652→   652→              key={id}
+   653→   653→              role="tab"
+   654→   654→              aria-selected={mainTab === id}
+   655→   655→              onClick={() => switchMainTab(id)}
+   656→   656→            >
+   657→   657→              {label}
+   658→   658→            </button>
+   659→   659→          ))}
+   660→   660→        </nav>
+   661→   661→      </header>
+   662→   662→
+   663→   663→      <main className="flex-1 w-full max-w-5xl mx-auto px-3 sm:px-4 py-5 space-y-5 relative z-10">
+   664→   664→        {mainTab === "tasks" ? (
+   665→   665→          <TasksSection api={plannerApi} onToast={showToast} />
+   666→   666→        ) : mainTab === "timer" ? (
+   667→   667→          <TimerSection api={plannerApi} now={now} onToast={showToast} />
+   668→   668→        ) : mainTab === "quran" ? (
+   669→   669→          <QuranSection onToast={showToast} />
+   670→   670→        ) : (
+   671→   671→          <>
+   672→   672→        {/* ---------------- بطاقة الصلاة القادمة ---------------- */}
+   673→   673→        <section className="hero-card p-6 sm:p-8 animate-rise" aria-label="الصلاة القادمة">
+   674→   674→          <div className="flex flex-col md:flex-row items-center gap-6">
+   675→   675→            <div className="text-center md:text-right md:flex-1 order-2 md:order-1 w-full">
+   676→   676→              <p className="text-xs mb-1" style={{ color: "var(--ink-dim)" }}>
+   677→   677→                {greetingFor(now)}
+   678→   678→              </p>
+   679→   679→              {dateLine.hijri && (
+   680→   680→                <p className="font-quran text-lg font-bold" style={{ color: "var(--accent2)" }}>
+   681→   681→                  {dateLine.hijri}
+   682→   682→                </p>
+   683→   683→              )}
+   684→   684→              <p className="text-xs mb-3" style={{ color: "var(--ink-dim)" }}>
+   685→   685→                {dateLine.gregorian}
+   686→   686→              </p>
+   687→   687→              <p className="text-sm mb-1" style={{ color: "var(--ink-dim)" }}>
+   688→   688→                الصلاة القادمة
+   689→   689→              </p>
+   690→   690→              <p className="text-3xl sm:text-4xl font-extrabold mb-1" style={{ color: "var(--accent)" }}>
+   691→   691→                {nextName}
+   692→   692→              </p>
+   693→   693→              <p className="text-sm" style={{ color: "var(--ink-dim)" }}>
+   694→   694→                📍 {cityName} — الساعة الآن {formatClock(now, hour12, false)}
+   695→   695→              </p>
+   696→   696→            </div>
+   697→   697→
+   698→   698→            {/* العد التنازلي */}
+   699→   699→            <div className="relative w-48 h-48 sm:w-56 sm:h-56 shrink-0 order-1 md:order-2" role="timer" aria-label={`باقي على ${nextName}`}>
+   700→   700→              <svg viewBox="0 0 120 120" className="w-full h-full -rotate-90">
+   701→   701→                <circle cx="60" cy="60" r="54" fill="none" stroke="var(--surface-2)" strokeWidth="7" />
+   702→   702→                <circle
+   703→   703→                  cx="60" cy="60" r="54" fill="none"
+   704→   704→                  stroke="var(--accent)" strokeWidth="7" strokeLinecap="round"
+   705→   705→                  strokeDasharray={2 * Math.PI * 54}
+   706→   706→                  strokeDashoffset={2 * Math.PI * 54 * (1 - ringProgress)}
+   707→   707→                  style={{ filter: "drop-shadow(0 0 8px var(--glow))", transition: "stroke-dashoffset 1s linear" }}
+   708→   708→                />
+   709→   709→              </svg>
+   710→   710→              <div className="absolute inset-0 flex flex-col items-center justify-center gap-0.5">
+   711→   711→                <span className="text-[0.65rem]" style={{ color: "var(--ink-dim)" }}>
+   712→   712→                  باقي على الأذان
+   713→   713→                </span>
+   714→   714→                {countdown && (
+   715→   715→                  <span className="font-extrabold tabular-nums text-2xl sm:text-3xl" style={{ color: "var(--ink)" }} dir="ltr">
+   716→   716→                    {countdown.h}:{countdown.m}:{countdown.s}
+   717→   717→                  </span>
+   718→   718→                )}
+   719→   719→                <span className="text-[0.7rem] font-bold" style={{ color: "var(--accent2)" }}>
+   720→   720→                  {next ? formatPrayerTime(next.at, hour12) : ""}
+   721→   721→                </span>
+   722→   722→              </div>
+   723→   723→            </div>
+   724→   724→          </div>
+   725→   725→        </section>
+   726→   726→
+   727→   727→        {/* ---------------- كروت الصلوات ---------------- */}
+   728→   728→        <section aria-label="مواقيت الصلوات اليوم">
+   729→   729→          <div className="grid grid-cols-3 sm:grid-cols-6 gap-2.5 sm:gap-3">
+   730→   730→            {PRAYER_ORDER.map((key) => {
+   731→   731→              const isNext = next?.key === key;
+   732→   732→              const isLogged = todayLog[key];
+   733→   733→              const passed = times ? times[key] <= now : false;
+   734→   734→              const name = key === "dhuhr" && now.getDay() === 5 ? "الجمعة" : PRAYER_NAMES[key];
+   735→   735→              return (
+   736→   736→                <button
+   737→   737→                  key={key}
+   738→   738→                  onClick={() => onCardClick(key)}
+   739→   739→                  aria-label={`صلاة ${name}، ${times ? formatPrayerTime(times[key], hour12) : ""}${isLogged ? "، مسجلة" : isNext ? "، الصلاة القادمة" : passed ? "، انتهى وقتها غير مسجلة، اضغط للتسجيل" : ""}`}
+   740→   740→                  className="glass-card !rounded-2xl p-3 sm:p-4 text-center relative transition-all hover:-translate-y-1"
+   741→   741→                  style={{
+   742→   742→                    borderColor: isLogged ? "var(--accent)" : isNext ? "var(--accent2)" : undefined,
+   743→   743→                    background: isLogged ? "color-mix(in srgb, var(--accent) 14%, var(--surface))" : isNext ? "color-mix(in srgb, var(--accent2) 12%, var(--surface))" : undefined,
+   744→   744→                    boxShadow: isNext ? "0 0 26px -8px var(--glow)" : undefined,
+   745→   745→                    borderStyle: !isLogged && passed && !isNext ? "dashed" : "solid",
+   746→   746→                  }}
+   747→   747→                >
+   748→   748→                  {isLogged && (
+   749→   749→                    <span className="absolute top-1.5 left-1.5 text-xs animate-pop-in" aria-hidden>✅</span>
+   750→   750→                  )}
+   751→   751→                  {isNext && (
+   752→   752→                    <span className="absolute top-1.5 left-1.5 text-xs animate-pulse" aria-hidden>⏳</span>
+   753→   753→                  )}
+   754→   754→                  <span className="text-2xl sm:text-3xl block mb-1" aria-hidden>{PRAYER_EMOJI[key]}</span>
+   755→   755→                  <span className="block text-xs sm:text-sm font-bold" style={{ color: "var(--ink)" }}>
+   756→   756→                    {name}
+   757→   757→                  </span>
+   758→   758→                  <span className="block text-[0.7rem] sm:text-xs mt-0.5 tabular-nums" style={{ color: "var(--ink-dim)" }} dir="ltr">
+   759→   759→                    {times ? formatPrayerTime(times[key], hour12) : "…"}
+   760→   760→                  </span>
+   761→   761→                </button>
+   762→   762→              );
+   763→   763→            })}
+   764→   764→            {/* الشروق */}
+   765→   765→            <div className="glass-card !rounded-2xl p-3 sm:p-4 text-center opacity-80" aria-label="وقت الشروق">
+   766→   766→              <span className="text-2xl sm:text-3xl block mb-1" aria-hidden>{PRAYER_EMOJI.sunrise}</span>
+   767→   767→              <span className="block text-xs sm:text-sm font-bold" style={{ color: "var(--ink)" }}>الشروق</span>
+   768→   768→              <span className="block text-[0.7rem] sm:text-xs mt-0.5 tabular-nums" style={{ color: "var(--ink-dim)" }} dir="ltr">
+   769→   769→                {times ? formatPrayerTime(times.sunrise, hour12) : "…"}
+   770→   770→              </span>
+   771→   771→            </div>
+   772→   772→          </div>
+   773→   773→          <p className="text-[0.68rem] mt-2 text-center" style={{ color: "var(--ink-dim)" }}>
+   774→   774→            💡 اضغط على أي صلاة فاتت وقتها وسجّلها — والمواقيت محسوبة بتوقيت جهازك المحلي
+   775→   775→          </p>
+   776→   776→        </section>
+   777→   777→
+   778→   778→        {/* ---------------- الأذكار والآيات ---------------- */}
+   779→   779→        <section className="grid md:grid-cols-2 gap-4" aria-label="الأذكار والآيات">
+   780→   780→          <div className="glass-card p-5 sm:p-6 flex flex-col">
+   781→   781→            <div className="flex items-center gap-2 mb-4">
+   782→   782→              <span className="text-2xl">📿</span>
+   783→   783→              <h3 className="font-bold text-lg" style={{ color: "var(--ink)" }}>ذكر يتجدد كل دقيقة</h3>
+   784→   784→              <span className="chip mr-auto">
+   785→   785→                {toArabicDigits(athkarIdx + 1)} / {toArabicDigits(ATHKAR.length)}
+   786→   786→              </span>
+   787→   787→            </div>
+   788→   788→            <div key={athkarIdx} className="flex-1 flex flex-col justify-center animate-fade-swap">
+   789→   789→              <p className="font-quran text-xl sm:text-2xl leading-loose text-center mb-3" style={{ color: "var(--ink)" }}>
+   790→   790→                {ATHKAR[athkarIdx].text}
+   791→   791→              </p>
+   792→   792→              {ATHKAR[athkarIdx].virtue && (
+   793→   793→                <p className="text-xs text-center" style={{ color: "var(--accent2)" }}>
+   794→   794→                  💫 {ATHKAR[athkarIdx].virtue}
+   795→   795→                </p>
+   796→   796→              )}
+   797→   797→            </div>
+   798→   798→            <div className="flex justify-center gap-2 mt-4">
+   799→   799→              <button onClick={() => setAthkarIdx((x) => (x - 1 + ATHKAR.length) % ATHKAR.length)} className="btn-ghost px-4 py-2 text-sm" aria-label="الذكر السابق">
+   800→   800→                → السابق
+   801→   801→              </button>
+   802→   802→              <button onClick={() => setAthkarIdx((x) => (x + 1) % ATHKAR.length)} className="btn-accent px-6 py-2 text-sm" aria-label="الذكر التالي">
+   803→   803→                التالي ←
+   804→   804→              </button>
+   805→   805→            </div>
+   806→   806→          </div>
+   807→   807→
+   808→   808→          <div className="glass-card p-5 sm:p-6 flex flex-col">
+   809→   809→            <div className="flex items-center gap-2 mb-4">
+   810→   810→              <span className="text-2xl">📖</span>
+   811→   811→              <h3 className="font-bold text-lg" style={{ color: "var(--ink)" }}>آية تتجدد كل دقيقة</h3>
+   812→   812→              <span className="chip mr-auto">
+   813→   813→                {toArabicDigits(verseIdx + 1)} / {toArabicDigits(VERSES.length)}
+   814→   814→              </span>
+   815→   815→            </div>
+   816→   816→            <div key={verseIdx} className="flex-1 flex flex-col justify-center animate-fade-swap">
+   817→   817→              <p className="font-quran text-xl sm:text-2xl leading-loose text-center mb-2" style={{ color: "var(--accent2)" }}>
+   818→   818→                ﴿ {VERSES[verseIdx].text} ﴾
+   819→   819→              </p>
+   820→   820→              <p className="text-xs text-center" style={{ color: "var(--ink-dim)" }}>
+   821→   821→                [{VERSES[verseIdx].ref}]
+   822→   822→              </p>
+   823→   823→              {VERSES[verseIdx].s && VERSES[verseIdx].a && (
+   824→   824→                <button
+   825→   825→                  onClick={toggleVerseAudio}
+   826→   826→                  className="btn-ghost mx-auto mt-3 px-4 py-1.5 text-xs"
+   827→   827→                  aria-label={versePlaying ? "إيقاف تلاوة الآية" : "تشغيل تلاوة الآية بالقارئ المختار"}
+   828→   828→                  title="تشغيل تلاوة الآية بالقارئ المختار في تبويب القرآن"
+   829→   829→                >
+   830→   830→                  {versePlaying ? "⏹ إيقاف التلاوة" : "🔊 اسمع الآية"}
+   831→   831→                </button>
+   832→   832→              )}
+   833→   833→            </div>
+   834→   834→            <div className="flex justify-center gap-2 mt-4">
+   835→   835→              <button onClick={() => setVerseIdx((x) => (x - 1 + VERSES.length) % VERSES.length)} className="btn-ghost px-4 py-2 text-sm" aria-label="الآية السابقة">
+   836→   836→                → السابق
+   837→   837→              </button>
+   838→   838→              <button onClick={() => setVerseIdx((x) => (x + 1) % VERSES.length)} className="btn-accent px-6 py-2 text-sm" aria-label="الآية التالية">
+   839→   839→                التالي ←
+   840→   840→              </button>
+   841→   841→            </div>
+   842→   842→          </div>
+   843→   843→        </section>
+   844→   844→
+   845→   845→        {/* ---------------- الإحصائيات + القبلة + السبحة ---------------- */}
+   846→   846→        <section className="grid lg:grid-cols-3 md:grid-cols-2 gap-4">
+   847→   847→          <StatsSection logs={logs} streak={streak} bestStreak={bestStreak.current} todayKey={nowKey} />
+   848→   848→          <QiblaCompass lat={settings.lat} lng={settings.lng} />
+   849→   849→          <TasbihCard />
+   850→   850→        </section>
+   851→   851→
+   852→   852→        {/* ---------------- الإنجازات ---------------- */}
+   853→   853→        <section className="glass-card p-5 sm:p-6" aria-label="الإنجازات">
+   854→   854→          <div className="flex items-center gap-2 mb-4">
+   855→   855→            <span className="text-2xl">🏅</span>
+   856→   856→            <h3 className="font-bold text-lg" style={{ color: "var(--ink)" }}>الإنجازات</h3>
+   857→   857→            <span className="chip mr-auto">
+   858→   858→              {toArabicDigits(unlockedAchievements.length)} / {toArabicDigits(ACHIEVEMENTS.length)}
+   859→   859→            </span>
+   860→   860→          </div>
+   861→   861→          <div className="flex gap-2.5 overflow-x-auto no-scrollbar pb-1">
+   862→   862→            {ACHIEVEMENTS.map((a) => {
+   863→   863→              const got = unlockedAchievements.includes(a.id);
+   864→   864→              return (
+   865→   865→                <div
+   866→   866→                  key={a.id}
+   867→   867→                  className="shrink-0 w-32 p-3 rounded-2xl text-center"
+   868→   868→                  style={{
+   869→   869→                    background: "var(--surface)",
+   870→   870→                    border: got ? "1.5px solid var(--accent)" : "1px dashed var(--surface-border)",
+   871→   871→                    opacity: got ? 1 : 0.5,
+   872→   872→                    boxShadow: got ? "0 0 16px -6px var(--glow)" : "none",
+   873→   873→                  }}
+   874→   874→                  title={a.description}
+   875→   875→                >
+   876→   876→                  <span className="text-2xl block mb-1">{got ? a.emoji : "🔒"}</span>
+   877→   877→                  <span className="block text-xs font-bold" style={{ color: got ? "var(--accent2)" : "var(--ink-dim)" }}>
+   878→   878→                    {a.name}
+   879→   879→                  </span>
+   880→   880→                  <span className="block text-[0.62rem] mt-0.5 leading-snug" style={{ color: "var(--ink-dim)" }}>
+   881→   881→                    {a.description}
+   882→   882→                  </span>
+   883→   883→                </div>
+   884→   884→              );
+   885→   885→            })}
+   886→   886→          </div>
+   887→   887→        </section>
+   888→   888→          </>
+   889→   889→        )}
+   890→   890→      </main>
+   891→   891→
+   892→   892→      {/* ---------------- الفوتر ---------------- */}
+   893→   893→      <footer className="mt-auto relative z-10 px-4 py-6 text-center" style={{ borderTop: "1px solid var(--surface-border)" }}>
+   894→   894→        <p className="font-quran text-lg mb-1" style={{ color: "var(--accent2)" }}>
+   895→   895→          رَبَّنَا تَقَبَّلْ مِنَّا صَلَاتَنَا وَذِكْرَنَا وَسَعْيَنَا
+   896→   896→        </p>
+   897→   897→        <p className="text-xs" style={{ color: "var(--ink-dim)" }}>
+   898→   898→          صُنع بحب 🤍 — سَكِينَة | المواقيت والأذكار والقرآن والتاسكات والتايمر
+   899→   899→        </p>
+   900→   900→      </footer>
+   901→   901→
+   902→   902→      {/* ---------------- المودالات ---------------- */}
+   903→   903→      <PrayerModal
+   904→   904→        prayer={activePrayer}
+   905→   905→        stage={stage}
+   906→   906→        timeStr={activePrayer && times ? formatPrayerTime(times[activePrayer], hour12) : ""}
+   907→   907→        adhanBlocked={adhanBlocked}
+   908→   908→        adhanPlaying={player.isPlaying()}
+   909→   909→        onAnswer={onAnswer}
+   910→   910→        onGoPray={onGoPray}
+   911→   911→        onSnooze={onSnooze}
+   912→   912→        onPlayAdhan={() => activePrayer && playAdhanFor(activePrayer)}
+   913→   913→        onStopAdhan={() => {
+   914→   914→          player.stop();
+   915→   915→          setAdhanBlocked(false);
+   916→   916→        }}
+   917→   917→      />
+   918→   918→
+   919→   919→      <CongratsOverlay
+   920→   920→        show={!!congrats}
+   921→   921→        prayer={congrats?.prayer ?? null}
+   922→   922→        xpGain={congrats?.xp ?? 0}
+   923→   923→        streak={congrats?.streak ?? 0}
+   924→   924→        newAchievements={congrats?.newAch ?? []}
+   925→   925→        onClose={() => setCongrats(null)}
+   926→   926→      />
+   927→   927→
+   928→   928→      <Fireworks active={fireworksOn} onDone={stopFireworks} />
+   929→   929→
+   930→   930→      {/* تأكيد التسجيل اليدوي */}
+   931→   931→      {confirm && (
+   932→   932→        <div
+   933→   933→          className="fixed inset-0 z-[80] flex items-center justify-center p-4"
+   934→   934→          style={{ background: "rgba(0,0,0,0.55)", backdropFilter: "blur(6px)" }}
+   935→   935→          role="dialog"
+   936→   936→          aria-modal="true"
+   937→   937→        >
+   938→   938→          <div className="animate-pop-in glass-card max-w-xs w-full p-6 text-center" style={{ background: "var(--surface-2)" }}>
+   939→   939→            <div className="text-4xl mb-2">{confirm.action === "mark" ? "✍️" : "↩️"}</div>
+   940→   940→            <p className="font-bold mb-4" style={{ color: "var(--ink)" }}>
+   941→   941→              {confirm.action === "mark"
+   942→   942→                ? `تسجّل إنك صليت ${PRAYER_NAMES[confirm.key]}؟`
+   943→   943→                : `إلغاء تسجيل صلاة ${PRAYER_NAMES[confirm.key]}؟`}
+   944→   944→            </p>
+   945→   945→            <div className="grid grid-cols-2 gap-2.5">
+   946→   946→              <button onClick={confirmAction} className="btn-accent py-2.5">
+   947→   947→                أيوه
+   948→   948→              </button>
+   949→   949→              <button onClick={() => setConfirm(null)} className="btn-ghost py-2.5">
+   950→   950→                سيبها
+   951→   951→              </button>
+   952→   952→            </div>
+   953→   953→          </div>
+   954→   954→        </div>
+   955→   955→      )}
+   956→   956→
+   957→   957→      {/* التوست */}
+   958→   958→      {toast && (
+   959→   959→        <div className="fixed bottom-5 inset-x-0 z-[75] flex justify-center px-4 pointer-events-none" role="status">
+   960→   960→          <div
+   961→   961→            className="animate-rise px-5 py-3 rounded-2xl text-sm font-bold shadow-xl"
+   962→   962→            style={{
+   963→   963→              background: "var(--surface-2)",
+   964→   964→              border: "1px solid var(--accent)",
+   965→   965→              color: "var(--ink)",
+   966→   966→              backdropFilter: "blur(12px)",
+   967→   967→              maxWidth: "90vw",
+   968→   968→            }}
+   969→   969→          >
+   970→   970→            {toast}
+   971→   971→          </div>
+   972→   972→        </div>
+   973→   973→      )}
+   974→   974→
+   975→   975→      {/* الإعدادات */}
+   976→   976→      <SettingsPanel
+   977→   977→        open={settingsOpen}
+   978→   978→        settings={settings}
+   979→   979→        onChange={updateSettings}
+   980→   980→        onClose={() => setSettingsOpen(false)}
+   981→   981→        onTestAdhan={() => {
+   982→   982→          player.test(adhanTestingVoice.file, settings.adhanVolume);
+   983→   983→          setAdhanTesting(player.isPlaying());
+   984→   984→        }}
+   985→   985→        adhanTesting={adhanTesting}
+   986→   986→        onResetData={() => {
+   987→   987→          import("@/lib/storage").then((m) => m.resetAllData());
+   988→   988→          setTimeout(() => window.location.reload(), 400);
+   989→   989→        }}
+   990→   990→        stats={{
+   991→   991→          total: totalPrayersCount,
+   992→   992→          streak,
+   993→   993→          xp: xpTotal,
+   994→   994→          level: Math.floor(xpTotal / 100) + 1,
+   995→   995→          best: bestStreak.current,
+   996→   996→          unlockedAchievements,
+   997→   997→        }}
+   998→   998→      />
+   999→   999→    </div>
+  1000→  1000→  );
+  1001→  1001→}
+  1002→  1002→
