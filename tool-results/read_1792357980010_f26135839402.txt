@@ -1,0 +1,702 @@
+     1→     1→<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+     2→     2→<title>Challenge Planner</title>
+     3→     3→<meta name="claude:viewport-fit-sides" content="cover">
+     4→     4→<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Readex+Pro:wght@400;500;600;700&family=Tajawal:wght@400;500;700&display=swap">
+     5→     5→<script>try{var _u=JSON.parse(localStorage.getItem('planner-ui-v1')||'null');document.documentElement.setAttribute('data-ui',_u&&_u.theme?_u.theme:'auto')}catch(e){document.documentElement.setAttribute('data-ui','auto')}</script>
+     6→     6→<style>
+     7→     7→/* Layout: بانر غامق (Challenge with me + اليوم + التقدم + رسالة تشجيع)، شريط أرقام، كارت تايمر، أهداف الكورسات، وتبويبات: اليوم / الخطة / كورساتي / وقت المذاكرة / إنجازاتي. */
+     8→     8→:root{
+     9→     9→  --bg:#f1f5f3; --surface:#ffffff; --surface2:#eef3f1; --ink:#0f1f1b; --muted:#53655f; --line:#d5e0db;
+    10→    10→  --accent:#0a7d5a; --on:#ffffff; --today:#fbf4d3; --todayline:#d9a21b; --warn:#b42318; --warnbg:#fdeceb;
+    11→    11→  --hero:#0d2b26; --hero-ink:#f4fbf8; --hero-mute:#9fbdb4; --hero-line:rgba(255,255,255,.16); --gold:#c8f560;
+    12→    12→  --k0:#6d4ae6; --k1:#d97a00; --k2:#1b74e4; --k3:#138a5b; --k4:#d6336c; --k5:#0e8fa8; --k6:#d64a1f; --k7:#7a8b12;
+    13→    13→  --college:#5b6b86; --other:#a15c9e;
+    14→    14→  --f-body:"Tajawal","Segoe UI",Tahoma,system-ui,sans-serif;
+    15→    15→  --f-disp:"Readex Pro","Tajawal",Tahoma,sans-serif;
+    16→    16→}
+    17→    17→@media (prefers-color-scheme:dark){:root[data-ui="auto"]{
+    18→    18→  --bg:#09120f; --surface:#122019; --surface2:#182a22; --ink:#e8f3ee; --muted:#93aaa1; --line:#264036;
+    19→    19→  --accent:#3ddc9c; --on:#04140f; --today:#2a2813; --todayline:#c9962a; --warn:#ff9a8f; --warnbg:#3a1d1b;
+    20→    20→  --hero:#123a32; --hero-ink:#f4fbf8; --hero-mute:#a5c5bb; --hero-line:rgba(255,255,255,.18); --gold:#c8f560;
+    21→    21→  --k0:#b29bff; --k1:#ffb347; --k2:#6ab0ff; --k3:#5fd9a0; --k4:#ff8fb3; --k5:#5fd3e8; --k6:#ff8f6b; --k7:#cfe052;
+    22→    22→  --college:#9db0cf; --other:#d9a0d6; color-scheme:dark}}
+    23→    23→:root[data-ui="dark"]{
+    24→    24→  --bg:#09120f; --surface:#122019; --surface2:#182a22; --ink:#e8f3ee; --muted:#93aaa1; --line:#264036;
+    25→    25→  --accent:#3ddc9c; --on:#04140f; --today:#2a2813; --todayline:#c9962a; --warn:#ff9a8f; --warnbg:#3a1d1b;
+    26→    26→  --hero:#123a32; --hero-ink:#f4fbf8; --hero-mute:#a5c5bb; --hero-line:rgba(255,255,255,.18); --gold:#c8f560;
+    27→    27→  --k0:#b29bff; --k1:#ffb347; --k2:#6ab0ff; --k3:#5fd9a0; --k4:#ff8fb3; --k5:#5fd3e8; --k6:#ff8f6b; --k7:#cfe052;
+    28→    28→  --college:#9db0cf; --other:#d9a0d6; color-scheme:dark}
+    29→    29→
+    30→    30→*{box-sizing:border-box}
+    31→    31→body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:var(--fs,16px);line-height:1.6;direction:rtl;
+    32→    32→  padding-block:18px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+    33→    33→button,input,select{font:inherit;color:inherit}
+    34→    34→button{cursor:pointer}
+    35→    35→button:disabled{opacity:.45;cursor:default}
+    36→    36→:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+    37→    37→.wrap{max-width:1040px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+    38→    38→.topbar{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:13px;color:var(--muted);flex-wrap:wrap}
+    39→    39→.save{font-size:12px}
+    40→    40→.hero{background:var(--hero);color:var(--hero-ink);border-radius:16px;padding:22px;display:flex;gap:20px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+    41→    41→.hero .hl{flex:1;min-width:240px;display:flex;flex-direction:column;gap:8px}
+    42→    42→.hero h1{margin:0}
+    43→    43→.brand{font-family:var(--f-disp);font-weight:700;font-size:42px;line-height:1.1;letter-spacing:-.01em}
+    44→    44→.brand em{font-style:normal;color:var(--gold)}
+    45→    45→.day{font-family:var(--f-disp);font-weight:600;font-size:22px;line-height:1.3}
+    46→    46→.hero .range{color:var(--hero-mute);font-size:13px}
+    47→    47→.msg{margin:4px 0 0;font-size:16px;line-height:1.7;max-width:56ch;border-inline-start:3px solid var(--gold);padding-inline-start:12px}
+    48→    48→.ring{position:relative;width:120px;height:120px;flex:none}
+    49→    49→.ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+    50→    50→.ring b{position:absolute;inset:0;display:grid;place-items:center;font-family:var(--f-disp);font-size:26px;font-variant-numeric:tabular-nums}
+    51→    51→.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+    52→    52→.stat{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 14px}
+    53→    53→.stat b{display:block;font-family:var(--f-disp);font-size:24px;line-height:1.3;font-variant-numeric:tabular-nums}
+    54→    54→.stat span{font-size:12px;color:var(--muted)}
+    55→    55→.stat.bad b{color:var(--warn)}
+    56→    56→.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px}
+    57→    57→.timer{display:flex;flex-wrap:wrap;gap:14px 24px;align-items:center;justify-content:space-between}
+    58→    58→.timer .tl{display:flex;flex-direction:column;gap:6px}
+    59→    59→.lbl{font-size:12px;color:var(--muted);font-weight:600;letter-spacing:.04em}
+    60→    60→.clock{font-family:var(--f-disp);font-size:46px;line-height:1;font-variant-numeric:tabular-nums;direction:ltr;text-align:start}
+    61→    61→.clock.on{color:var(--accent)}
+    62→    62→.timer .tm{display:flex;flex-direction:column;gap:8px;min-width:210px;flex:1;max-width:420px}
+    63→    63→.timer .tc{display:flex;flex-direction:column;gap:8px;align-items:stretch;min-width:170px}
+    64→    64→.bar{height:8px;background:var(--surface2);border:1px solid var(--line);border-radius:4px;overflow:hidden}
+    65→    65→.bar i{display:block;height:100%;background:var(--c,var(--accent));width:0}
+    66→    66→.small{font-size:12.5px;color:var(--muted)}
+    67→    67→.small b{color:var(--ink);font-variant-numeric:tabular-nums}
+    68→    68→.btn{border:1px solid var(--line);background:var(--surface2);border-radius:9px;padding:6px 14px;font-weight:500}
+    69→    69→.btn:hover:not(:disabled){border-color:var(--accent)}
+    70→    70→.btn.pri{background:var(--accent);color:var(--on);border-color:var(--accent);font-weight:600}
+    71→    71→.btn.stop{background:var(--warn);color:var(--on);border-color:var(--warn);font-weight:600}
+    72→    72→.btn.big{padding:10px 20px;font-size:16px}
+    73→    73→.btn.danger{color:var(--warn);border-color:var(--warn);background:transparent}
+    74→    74→.btn.danger.sure{background:var(--warn);color:var(--on)}
+    75→    75→select,input[type=text],input[type=number],input[type=date]{background:var(--surface2);border:1px solid var(--line);border-radius:8px;padding:7px 10px;color:var(--ink);max-width:100%}
+    76→    76→.goals{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
+    77→    77→.goal{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:6px;border-top:4px solid var(--c)}
+    78→    78→.goal .gt{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+    79→    79→.goal b{font-size:15px;overflow-wrap:anywhere}
+    80→    80→.goal .gc{font-family:var(--f-disp);font-size:20px;font-variant-numeric:tabular-nums}
+    81→    81→.tabs{display:flex;gap:4px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:4px;overflow-x:auto}
+    82→    82→.tabs button{flex:1;white-space:nowrap;border:0;background:transparent;padding:8px 14px;border-radius:9px;font-weight:500;color:var(--muted)}
+    83→    83→.tabs button[aria-selected="true"]{background:var(--accent);color:var(--on)}
+    84→    84→section.panel{display:flex;flex-direction:column;gap:14px;min-width:0}
+    85→    85→h2{font-family:var(--f-disp);font-size:21px;margin:0;font-weight:600;text-wrap:balance}
+    86→    86→h3{font-size:12px;letter-spacing:.06em;color:var(--muted);margin:0;font-weight:700}
+    87→    87→.nav{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+    88→    88→.nav .grow{flex:1;min-width:160px}
+    89→    89→.sub{color:var(--muted);font-size:13px}
+    90→    90→.list{display:flex;flex-direction:column;gap:8px}
+    91→    91→.trow{display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 12px;border-inline-start:5px solid var(--c)}
+    92→    92→.trow .task{flex:1;min-width:0;font-size:16px}
+    93→    93→.cat{flex:none;font-size:11.5px;font-weight:700;color:var(--c);border:1px solid var(--c);border-radius:999px;padding:0 9px;line-height:22px;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    94→    94→.ic{flex:none;width:34px;height:34px;display:grid;place-items:center;border:0;background:transparent;border-radius:8px;color:var(--muted)}
+    95→    95→.ic:hover{background:var(--surface2);color:var(--ink)}
+    96→    96→.ic svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+    97→    97→.task{display:flex;gap:10px;align-items:center;cursor:pointer;position:relative;line-height:1.5}
+    98→    98→.task input{position:absolute;opacity:0;width:22px;height:22px;margin:0}
+    99→    99→.task .box{flex:none;width:22px;height:22px;border:2px solid var(--c);border-radius:7px;display:grid;place-items:center}
+   100→   100→.task input:checked+.box{background:var(--c)}
+   101→   101→.task input:checked+.box::after{content:"";width:6px;height:11px;border:solid var(--on);border-width:0 2.5px 2.5px 0;transform:rotate(45deg) translate(-1px,-1px)}
+   102→   102→.task input:focus-visible+.box{outline:2px solid var(--accent);outline-offset:2px}
+   103→   103→.task input:checked~.tt{color:var(--muted);text-decoration:line-through}
+   104→   104→.task .tt{min-width:0;overflow-wrap:anywhere}
+   105→   105→.eform{display:flex;flex-wrap:wrap;gap:8px;align-items:center;background:var(--surface2);border:1px dashed var(--accent);border-radius:12px;padding:10px}
+   106→   106→.eform input[type=text]{flex:1;min-width:200px}
+   107→   107→.add{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+   108→   108→.add input[type=text]{flex:1;min-width:180px}
+   109→   109→.week{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:12px}
+   110→   110→.dcard{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:8px;min-width:0}
+   111→   111→.dcard.today{background:var(--today);border-color:var(--todayline)}
+   112→   112→.dcard.restd{background:var(--surface2)}
+   113→   113→.dcard header{display:flex;justify-content:space-between;align-items:center;gap:8px}
+   114→   114→.dcard header button.dn{background:transparent;border:0;padding:0;text-align:start;line-height:1.3}
+   115→   115→.dcard header b{font-family:var(--f-disp);font-size:18px}
+   116→   116→.dcard header small{display:block;color:var(--muted);font-size:12px}
+   117→   117→.pill{font-size:11.5px;font-weight:700;border-radius:999px;padding:0 9px;line-height:22px;border:1px solid var(--line);color:var(--muted)}
+   118→   118→.pill.ok{background:var(--accent);color:var(--on);border-color:var(--accent)}
+   119→   119→.pill.late{background:var(--warnbg);color:var(--warn);border-color:var(--warn)}
+   120→   120→.pill.now{background:var(--todayline);color:#1a1300;border-color:var(--todayline)}
+   121→   121→.dcard .trow{padding:6px 8px;border-radius:9px;border-inline-start-width:4px}
+   122→   122→.dcard .trow .task{font-size:13.5px}
+   123→   123→.dcard .task .box{width:18px;height:18px;border-radius:6px}
+   124→   124→.dcard .ic{width:28px;height:28px}
+   125→   125→.dcard .cat{display:none}
+   126→   126→.chart{display:flex;align-items:flex-end;gap:3px;height:150px;position:relative;padding-top:6px;border-bottom:1px solid var(--line)}
+   127→   127→.chart .col{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%;min-width:0}
+   128→   128→.chart .col i{display:block;width:100%;max-width:34px;background:var(--accent);border-radius:5px 5px 0 0;min-height:2px}
+   129→   129→.chart .col.hit i{background:var(--k3)}
+   130→   130→.chart .col.future i{background:var(--line)}
+   131→   131→.chart .tgt{position:absolute;inset-inline:0;border-top:2px dashed var(--todayline);pointer-events:none}
+   132→   132→.chart .tgt span{position:absolute;inset-inline-end:0;top:-20px;font-size:11px;color:var(--muted);background:var(--surface);padding:0 4px}
+   133→   133→.xlab{display:flex;gap:3px}
+   134→   134→.xlab span{flex:1;text-align:center;font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums;min-width:0;overflow:visible;white-space:nowrap}
+   135→   135→.catbars{display:flex;flex-direction:column;gap:8px}
+   136→   136→.catbars .r{display:grid;grid-template-columns:110px 1fr 90px;gap:10px;align-items:center;font-size:13px}
+   137→   137→.catbars .r span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+   138→   138→.catbars .r span:last-child{text-align:end;font-variant-numeric:tabular-nums;color:var(--muted)}
+   139→   139→.log{display:flex;flex-direction:column}
+   140→   140→.log .l{display:grid;grid-template-columns:1fr auto auto auto;gap:10px;align-items:center;padding:8px 0;border-top:1px solid var(--line);font-size:14px}
+   141→   141→.log .l:first-child{border-top:0}
+   142→   142→.badges{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}
+   143→   143→.badge{border:1px solid var(--line);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:2px;background:var(--surface)}
+   144→   144→.badge b{font-family:var(--f-disp);font-size:16px;font-weight:600}
+   145→   145→.badge span{font-size:12.5px;color:var(--muted)}
+   146→   146→.badge.on{border-color:var(--todayline);background:var(--today)}
+   147→   147→.badge.off{opacity:.55}
+   148→   148→.badge .st{font-size:11.5px;font-weight:700;margin-top:4px}
+   149→   149→.badge.on .st{color:var(--k1)}
+   150→   150→.fgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;align-items:end}
+   151→   151→.f{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--muted);min-width:0}
+   152→   152→.f input,.f select{width:100%}
+   153→   153→.f.wide{grid-column:1/-1}
+   154→   154→.actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+   155→   155→.course{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;border-inline-start:5px solid var(--c)}
+   156→   156→.course .cmain{flex:1;min-width:220px;display:flex;flex-direction:column;gap:6px}
+   157→   157→.course .cmain b{font-size:17px;overflow-wrap:anywhere}
+   158→   158→.course .cact{display:flex;flex-wrap:wrap;gap:6px}
+   159→   159→.empty{text-align:center;padding:26px 16px;display:flex;flex-direction:column;gap:8px;align-items:center}
+   160→   160→.empty b{font-family:var(--f-disp);font-size:18px;font-weight:600}
+   161→   161→.toast{position:fixed;inset-inline:0;bottom:calc(16px + env(safe-area-inset-bottom,0px));display:flex;justify-content:center;pointer-events:none;z-index:5;padding-inline:16px}
+   162→   162→.toast div{background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:12px;font-weight:500;box-shadow:0 8px 24px rgba(0,0,0,.25);max-width:520px;text-align:center}
+   163→   163→.foot{font-size:12px;color:var(--muted)}
+   164→   164→/* مواقيت الصلاة والأذكار */
+   165→   165→.prayers .phead{display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between;align-items:center}
+   166→   166→.prayers .ptit{display:flex;flex-direction:column;gap:2px}
+   167→   167→.pactions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+   168→   168→.pactions select{max-width:220px}
+   169→   169→.pactions .btn{padding:5px 12px;font-size:13.5px}
+   170→   170→.ptiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(92px,1fr));gap:8px;margin-top:12px}
+   171→   171→.ptile{background:var(--surface2);border:1px solid var(--line);border-radius:12px;padding:10px 6px;display:flex;flex-direction:column;gap:2px;align-items:center;text-align:center}
+   172→   172→.ptile .pn{font-size:12.5px;font-weight:700;color:var(--muted)}
+   173→   173→.ptile .pt{font-family:var(--f-disp);font-size:19px;font-variant-numeric:tabular-nums;direction:ltr;line-height:1.4}
+   174→   174→.ptile.sun{opacity:.8}
+   175→   175→.ptile.sun .pt{color:var(--muted)}
+   176→   176→.ptile.next{border-color:var(--accent);background:var(--surface);box-shadow:inset 0 0 0 1px var(--accent)}
+   177→   177→.ptile.next .pn{color:var(--accent)}
+   178→   178→.ptile.next .pn::after{content:" · الجاي"}
+   179→   179→.pcount{margin-top:12px;font-size:14px;color:var(--muted);display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+   180→   180→.pcount b{font-family:var(--f-disp);font-size:18px;color:var(--accent);font-variant-numeric:tabular-nums;direction:ltr;display:inline-block}
+   181→   181→.dhikr{text-align:center}
+   182→   182→.dhikr .dhead{display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between;align-items:center}
+   183→   183→.dmode{display:flex;gap:4px;background:var(--surface2);border:1px solid var(--line);border-radius:999px;padding:3px}
+   184→   184→.dmode button{border:0;background:transparent;border-radius:999px;padding:4px 13px;font-size:13px;font-weight:600;color:var(--muted)}
+   185→   185→.dmode button[aria-pressed="true"]{background:var(--accent);color:var(--on)}
+   186→   186→.dz-text{margin:16px auto 2px;font-size:clamp(17px,2.8vw,21px);line-height:1.9;font-weight:500;max-width:62ch;animation:dzin .5s ease-out}
+   187→   187→.dz-text.ayah{font-family:'Amiri','Readex Pro',serif;font-weight:400;font-size:clamp(21px,3.6vw,27px);line-height:2.1}
+   188→   188→.dz-ref{display:block;font-size:13px;color:var(--muted);margin-top:4px}
+   189→   189→.dzbar{height:4px;background:var(--surface2);border:1px solid var(--line);border-radius:3px;overflow:hidden;width:min(340px,86%);margin:16px auto 0}
+   190→   190→.dzbar i{display:block;height:100%;background:var(--gold);width:0;transition:width 1s linear}
+   191→   191→.dz-foot{display:flex;gap:12px;align-items:center;justify-content:center;flex-wrap:wrap;font-size:12.5px;color:var(--muted);margin-top:10px}
+   192→   192→.dz-foot b{font-variant-numeric:tabular-nums;direction:ltr;display:inline-block}
+   193→   193→@keyframes dzin{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+   194→   194→@media (max-width:560px){.hero{padding:16px}.brand{font-size:32px}.ring{width:96px;height:96px}.ring b{font-size:21px}.clock{font-size:40px}.catbars .r{grid-template-columns:80px 1fr 78px}}
+   195→   195→@media (prefers-reduced-motion:no-preference){.bar i{transition:width .35s}.toast div{animation:up .25s ease-out}@keyframes up{from{transform:translateY(12px);opacity:0}}}
+   196→   196→/* ===== متابعة الصلاة + الإعدادات والثيمات ===== */
+   197→   197→.pxp{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;margin-top:12px;font-size:13.5px;color:var(--muted)}
+   198→   198→.xpill{background:var(--accent);color:var(--on);border-radius:999px;padding:2px 12px;font-family:var(--f-disp);font-weight:700;font-size:14px;font-variant-numeric:tabular-nums}
+   199→   199→.pchips{margin-top:12px}
+   200→   200→.pchrow{display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:8px;margin-top:8px}
+   201→   201→.pchip{background:var(--surface2);border:1px solid var(--line);border-radius:11px;padding:8px 6px;display:flex;flex-direction:column;gap:2px;align-items:center;text-align:center}
+   202→   202→.pchip b{font-size:12.5px;color:var(--muted)}
+   203→   203→.pchip span{font-size:12px;font-variant-numeric:tabular-nums;color:var(--muted);line-height:1.4}
+   204→   204→.pchip.y{border-color:var(--accent);background:var(--surface)}
+   205→   205→.pchip.y b,.pchip.y span{color:var(--accent)}
+   206→   206→.pchip.n{border-color:var(--warn)}
+   207→   207→.pchip.n b,.pchip.n span{color:var(--warn)}
+   208→   208→.ovl{position:fixed;inset:0;background:rgba(3,10,8,.55);z-index:70;display:grid;place-items:center;padding:18px;overflow-y:auto}
+   209→   209→#pm .ovl{z-index:80}
+   210→   210→.modal{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:22px;max-width:440px;width:100%;max-height:min(88vh,680px);overflow-y:auto;position:relative;box-shadow:0 24px 70px rgba(0,0,0,.35);animation:dzin .25s ease-out}
+   211→   211→.modal h2{margin:0 0 6px;text-align:center;font-size:22px}
+   212→   212→.pm-icn{width:72px;height:72px;border-radius:50%;background:var(--surface2);border:1px solid var(--line);display:grid;place-items:center;margin:0 auto 12px}
+   213→   213→.pm-icn svg{width:36px;height:36px;fill:none;stroke:var(--accent);stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+   214→   214→.pm-q{text-align:center;font-size:17px;margin:4px 0 14px}
+   215→   215→.pm-adv{background:var(--surface2);border:1px solid var(--line);border-inline-start:4px solid var(--accent);border-radius:10px;padding:10px 12px;line-height:1.9;margin:12px 0 4px}
+   216→   216→.pm-ayah{font-family:'Amiri',serif;font-size:21px;line-height:2;text-align:center;margin:14px 0 2px}
+   217→   217→.pm-hint{text-align:center;font-size:12.5px;color:var(--muted);margin:10px 0 0;line-height:1.9}
+   218→   218→.pm-big{text-align:center;font-family:var(--f-disp);font-size:40px;font-weight:700;color:var(--accent);margin:2px 0;line-height:1.2}
+   219→   219→.pm-btns{display:flex;flex-direction:column;gap:8px;margin-top:16px}
+   220→   220→.pm-x{position:absolute;top:10px;inset-inline-start:10px}
+   221→   221→.mhead{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:6px}
+   222→   222→.mhead h2{margin:0;text-align:start}
+   223→   223→.modal.set h3{margin:18px 0 8px}
+   224→   224→.thms{display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:8px}
+   225→   225→.thm{display:flex;flex-direction:column;align-items:center;gap:6px;background:var(--surface2);border:1.5px solid var(--line);border-radius:12px;padding:10px 6px;font-size:12.5px;font-weight:600;color:var(--muted)}
+   226→   226→.thm .sw{width:100%;height:15px;border-radius:6px;border:1px solid rgba(0,0,0,.14)}
+   227→   227→.thm.on{border-color:var(--accent);color:var(--ink);background:var(--surface);box-shadow:inset 0 0 0 1px var(--accent)}
+   228→   228→.crow{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center}
+   229→   229→.crow label{display:flex;flex-direction:column;gap:4px;font-size:12.5px;color:var(--muted)}
+   230→   230→.crow input[type=color]{width:54px;height:34px;padding:2px;border:1px solid var(--line);border-radius:8px;background:var(--surface2);cursor:pointer}
+   231→   231→.fsr{flex:1;min-width:170px}
+   232→   232→.fsr input[type=range]{width:100%;accent-color:var(--accent)}
+   233→   233→.segrow{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;font-size:13px;color:var(--muted)}
+   234→   234→:root[data-density="compact"] body{padding-block:10px 34px}
+   235→   235→:root[data-density="compact"] .wrap{gap:10px}
+   236→   236→:root[data-density="compact"] .hero{padding:14px 16px}
+   237→   237→:root[data-density="compact"] .card{padding:11px 12px}
+   238→   238→:root[data-density="compact"] .stat{padding:7px 10px}
+   239→   239→:root[data-radius="soft"] .hero{border-radius:26px}
+   240→   240→:root[data-radius="soft"] .card,:root[data-radius="soft"] .stat,:root[data-radius="soft"] .goal,:root[data-radius="soft"] .trow,:root[data-radius="soft"] .dcard,:root[data-radius="soft"] .badge,:root[data-radius="soft"] .ptile,:root[data-radius="soft"] .tabs,:root[data-radius="soft"] .modal,:root[data-radius="soft"] .pchip{border-radius:20px}
+   241→   241→:root[data-radius="soft"] .btn{border-radius:14px}
+   242→   242→:root[data-radius="sharp"] .hero{border-radius:4px}
+   243→   243→:root[data-radius="sharp"] .card,:root[data-radius="sharp"] .stat,:root[data-radius="sharp"] .goal,:root[data-radius="sharp"] .trow,:root[data-radius="sharp"] .dcard,:root[data-radius="sharp"] .badge,:root[data-radius="sharp"] .ptile,:root[data-radius="sharp"] .tabs,:root[data-radius="sharp"] .modal,:root[data-radius="sharp"] .pchip{border-radius:3px}
+   244→   244→:root[data-radius="sharp"] .btn{border-radius:2px}
+   245→   245→:root[data-anim="off"] *,:root[data-anim="off"] *::before,:root[data-anim="off"] *::after{animation:none!important;transition:none!important}
+   246→   246→#fw{position:fixed;inset:0;width:100vw;height:100vh;pointer-events:none;z-index:90}
+   247→   247→:root[data-ui="olive"]{--bg:#f3f6ea;--surface:#ffffff;--surface2:#ecf1dd;--ink:#1d2412;--muted:#5e6a48;--line:#d7dfc0;--accent:#5f7d12;--on:#ffffff;--today:#f4edc8;--todayline:#b58b12;--warn:#b42318;--warnbg:#fdecec;--hero:#2f3d14;--hero-ink:#f6faec;--hero-mute:#b8c896;--hero-line:rgba(255,255,255,.16);--gold:#dff06e;--k0:#8e7cc3;--k1:#c98a1b;--k2:#3e7cb1;--k3:#5f9e3e;--k4:#c65a8e;--k5:#2f8f8f;--k6:#c05f2a;--k7:#8a9e2e;--college:#6b7a94;--other:#9a5f96;color-scheme:light}
+   248→   248→:root[data-ui="desert"]{--bg:#f8f3e7;--surface:#fffdf7;--surface2:#f2ebd9;--ink:#2c2113;--muted:#75664e;--line:#e5d9bf;--accent:#b07510;--on:#ffffff;--today:#f7ecd0;--todayline:#c08a1d;--warn:#a93226;--warnbg:#fcebe9;--hero:#42300f;--hero-ink:#fdf6e4;--hero-mute:#cfbb8e;--hero-line:rgba(255,255,255,.16);--gold:#f5cd6b;--k0:#a381d9;--k1:#d98a2b;--k2:#4a7fae;--k3:#7c9a3d;--k4:#c9648f;--k5:#3d8f86;--k6:#bf6236;--k7:#96872f;--college:#7d7256;--other:#a06a8f;color-scheme:light}
+   249→   249→:root[data-ui="violet"]{--bg:#141020;--surface:#1d1830;--surface2:#272040;--ink:#efeaf9;--muted:#a89ec4;--line:#3b3157;--accent:#b18cff;--on:#191026;--today:#2e2647;--todayline:#c9a227;--warn:#ff9a8f;--warnbg:#3c2030;--hero:#251c3e;--hero-ink:#f6f1fe;--hero-mute:#b6a8d8;--hero-line:rgba(255,255,255,.18);--gold:#f0c94f;--k0:#c9b2ff;--k1:#ffb347;--k2:#8fb8ff;--k3:#7fe0a8;--k4:#ff9ec0;--k5:#74d9e8;--k6:#ff9e75;--k7:#d4e06a;--college:#a99cc9;--other:#d8a3d4;color-scheme:dark}
+   250→   250→:root[data-ui="sea"]{--bg:#07181a;--surface:#0e2528;--surface2:#143338;--ink:#e2f3f0;--muted:#8cb4ae;--line:#1f474c;--accent:#2fd4b2;--on:#04201a;--today:#2a2813;--todayline:#c9962a;--warn:#ff9a8f;--warnbg:#3a2320;--hero:#0b3236;--hero-ink:#eefbfa;--hero-mute:#9dc8c3;--hero-line:rgba(255,255,255,.18);--gold:#8df0d2;--k0:#b29bff;--k1:#ffb347;--k2:#6ad0ff;--k3:#5fe8a8;--k4:#ff8fb3;--k5:#5fe0d8;--k6:#ff8f6b;--k7:#cfe052;--college:#9dc0cf;--other:#d9a0c6;color-scheme:dark}
+   251→   251→:root[data-ui="rose"]{--bg:#fbf1f4;--surface:#ffffff;--surface2:#f6e8ec;--ink:#2f1520;--muted:#7d5a68;--line:#efd3dc;--accent:#c2255c;--on:#ffffff;--today:#f9ecd6;--todayline:#c08a1d;--warn:#b42318;--warnbg:#fdecec;--hero:#451a2c;--hero-ink:#fdf0f5;--hero-mute:#d6a3b6;--hero-line:rgba(255,255,255,.16);--gold:#ffcf6e;--k0:#9d7cd8;--k1:#c9822b;--k2:#4778ab;--k3:#5f9e4e;--k4:#c25377;--k5:#32888f;--k6:#bc5c33;--k7:#8f8a2f;--college:#7d6a80;--other:#a05a8c;color-scheme:light}
+   252→   252→</style>
+   253→   253→
+   254→   254→<div class="wrap" lang="ar" dir="rtl">
+   255→   255→  <div class="topbar"><span id="dream"></span><span class="save" id="save"></span><button class="btn" data-settings aria-haspopup="dialog"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-2px;margin-inline-end:5px"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>الإعدادات</button></div>
+   256→   256→  <section class="hero" id="hero"></section>
+   257→   257→  <section class="card prayers" id="prayers" aria-label="مواعيد الصلاة"></section>
+   258→   258→  <section class="card dhikr" id="dhikr" aria-label="أذكار وآيات قرآنية"></section>
+   259→   259→  <div class="stats" id="stats"></div>
+   260→   260→  <section class="card timer" id="timer"></section>
+   261→   261→  <div class="goals" id="goals"></div>
+   262→   262→  <div class="tabs" role="tablist" id="tabs">
+   263→   263→    <button role="tab" data-tab="today">اليوم</button>
+   264→   264→    <button role="tab" data-tab="plan">الخطة كاملة</button>
+   265→   265→    <button role="tab" data-tab="courses">كورساتي</button>
+   266→   266→    <button role="tab" data-tab="study">وقت المذاكرة</button>
+   267→   267→    <button role="tab" data-tab="badges">إنجازاتي</button>
+   268→   268→  </div>
+   269→   269→  <section class="panel" id="view"></section>
+   270→   270→  <div class="foot">كل حاجة بتتحفظ تلقائيًا. تقدر تعدّل أو تمسح أي مهمة أو كورس، وتعيد التوزيع في أي وقت. مواقيت الصلاة والأذكار والآيات شغالة أوتوماتيك من غير أي إعداد، وفي وقت كل صلاة هيطلعلك سؤال «صليت؟» — لو صليت تاخد XP وألعاب نارية، ولو لسه هنفكرك وتديك نصايح وآيات، ومن زرار الإعدادات تقدر تغيّر الثيم والألوان وشكل الموقع كله براحتك.</div>
+   271→   271→</div>
+   272→   272→<div id="pm"></div>
+   273→   273→<div id="setovl"></div>
+   274→   274→<div class="toast" id="toast" role="status" aria-live="polite"></div>
+   275→   275→<datalist id="units"><option value="فيديو"><option value="محاضرة"><option value="درس"><option value="صفحة"><option value="فصل"><option value="تمرين"><option value="جلسة"><option value="وحدة"></datalist>
+   276→   276→
+   277→   277→<script>
+   278→   278→(function(){
+   279→   279→const MONTHS=['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+   280→   280→const WD=['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
+   281→   281→const pad=n=>String(n).padStart(2,'0');
+   282→   282→const iso=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+   283→   283→const parse=s=>{const a=s.split('-').map(Number);return new Date(a[0],a[1]-1,a[2])};
+   284→   284→const addDays=(s,n)=>{const d=parse(s);d.setDate(d.getDate()+n);return iso(d)};
+   285→   285→const utc=s=>{const a=s.split('-').map(Number);return Date.UTC(a[0],a[1]-1,a[2])};
+   286→   286→const diff=(a,b)=>Math.round((utc(b)-utc(a))/864e5);
+   287→   287→const dm=s=>{const d=parse(s);return d.getDate()+' '+MONTHS[d.getMonth()]};
+   288→   288→const dayName=s=>WD[parse(s).getDay()];
+   289→   289→const fx=s=>String(s).replace(/([A-Za-z0-9])([#+]+)(?![#+‎])/g,'$1$2‎').replace(/(^|\s)\.(?=[A-Za-z])/g,'$1‎.');
+   290→   290→const escA=t=>String(t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+   291→   291→const esc=t=>escA(fx(t));
+   292→   292→const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+   293→   293→const validDate=s=>/^\d{4}-\d{2}-\d{2}$/.test(s)&&!isNaN(parse(s).getTime());
+   294→   294→
+   295→   295→let TODAY=iso(new Date());
+   296→   296→const LS='planner-v1';
+   297→   297→const freshState=()=>({cfg:{start:TODAY,days:15,rest:-1,dream:''},courses:[],tasks:[],log:[],timer:null,target:180});
+   298→   298→let S=freshState();
+   299→   299→function loadInto(r){
+   300→   300→  if(!r||!r.cfg)return false;
+   301→   301→  S={cfg:Object.assign({start:TODAY,days:15,rest:-1,dream:''},r.cfg),courses:r.courses||[],tasks:r.tasks||[],log:r.log||[],timer:r.timer||null,target:r.target==null?180:r.target};
+   302→   302→  return true;
+   303→   303→}
+   304→   304→try{loadInto(JSON.parse(localStorage.getItem(LS)||'null'))}catch(e){}
+   305→   305→
+   306→   306→/* ---------- إعدادات الشكل + حالة متابعة الصلاة (بتتقري بدري عشان الثيم يتطبق قبل الرسم) ---------- */
+   307→   307→const UKEY='planner-ui-v1',PRKEY='prayer-log-v1';
+   308→   308→let UIX={theme:'auto',accent:'',bg:'',ink:'',font:'',fs:16,density:'cozy',radius:'md',anim:'on',dzInt:60};
+   309→   309→try{const _u=JSON.parse(localStorage.getItem(UKEY)||'null');if(_u)UIX=Object.assign(UIX,_u)}catch(e){}
+   310→   310→let PRS={days:{},xp:0};
+   311→   311→try{const _p=JSON.parse(localStorage.getItem(PRKEY)||'null');if(_p&&_p.days)PRS={days:_p.days,xp:_p.xp||0}}catch(e){}
+   312→   312→const PNAME={Fajr:'الفجر',Sunrise:'الشروق',Dhuhr:'الظهر',Asr:'العصر',Maghrib:'المغرب',Isha:'العشاء'};
+   313→   313→const PORDER=['Fajr','Sunrise','Dhuhr','Asr','Maghrib','Isha'];
+   314→   314→const PFIVE=['Fajr','Dhuhr','Asr','Maghrib','Isha'];
+   315→   315→applyUI();
+   316→   316→
+   317→   317→let START,END,N,DAYS;
+   318→   318→function setDays(){
+   319→   319→  START=validDate(S.cfg.start)?S.cfg.start:TODAY;
+   320→   320→  N=Math.min(90,Math.max(1,parseInt(S.cfg.days)||15));
+   321→   321→  DAYS=[];for(let i=0;i<N;i++)DAYS.push(addDays(START,i));
+   322→   322→  END=DAYS[N-1];
+   323→   323→}
+   324→   324→setDays();
+   325→   325→const clampDay=s=>s<START?START:(s>END?END:s);
+   326→   326→const isRest=d=>S.cfg.rest>=0&&parse(d).getDay()===S.cfg.rest;
+   327→   327→
+   328→   328→const FIXED={college:{n:'الكلية',v:'--college'},other:{n:'حاجة تانية',v:'--other'}};
+   329→   329→function catInfo(id){
+   330→   330→  const c=S.courses.find(x=>x.id===id);
+   331→   331→  if(c)return{n:c.name,v:'--k'+(c.ci%8)};
+   332→   332→  return FIXED[id]||FIXED.other;
+   333→   333→}
+   334→   334→const cv=id=>'var('+catInfo(id).v+')';
+   335→   335→const catIds=()=>S.courses.map(c=>c.id).concat(['college','other']);
+   336→   336→const validCat=id=>catIds().indexOf(id)>=0?id:(S.courses[0]?S.courses[0].id:'other');
+   337→   337→const catOpts=sel=>catIds().map(id=>'<option value="'+escA(id)+'"'+(id===sel?' selected':'')+'>'+esc(catInfo(id).n)+'</option>').join('');
+   338→   338→const dateOpts=sel=>DAYS.map((d,i)=>'<option value="'+d+'"'+(d===sel?' selected':'')+'>يوم '+(i+1)+' · '+dayName(d)+' '+dm(d)+'</option>').join('');
+   339→   339→
+   340→   340→let UI={tab:S.courses.length?'today':'courses',day:clampDay(TODAY),adding:null,confirm:null,confirmReset:false,tcat:''};
+   341→   341→try{const t=localStorage.getItem('planner-tab');if(t)UI.tab=t}catch(e){}
+   342→   342→let E=null,D={title:'',cat:''},M={date:clampDay(TODAY),min:'60',cat:''};
+   343→   343→let CF={id:null,name:'',unit:'فيديو',total:'',from:'1',to:''};
+   344→   344→let SF=null;
+   345→   345→
+   346→   346→const tasksOn=d=>S.tasks.filter(t=>t.date===d);
+   347→   347→const dayComplete=d=>{const ts=tasksOn(d);return ts.length>0&&ts.every(t=>t.done)};
+   348→   348→function fmt(secs){
+   349→   349→  secs=Math.max(0,Math.round(secs));const h=Math.floor(secs/3600),m=Math.floor((secs%3600)/60);
+   350→   350→  if(h&&m)return h+' س '+m+' د';if(h)return h+' س';if(m)return m+' د';return secs?'أقل من دقيقة':'0 د';
+   351→   351→}
+   352→   352→function clock(secs){secs=Math.max(0,Math.floor(secs));const h=Math.floor(secs/3600),m=Math.floor((secs%3600)/60),s=secs%60;return h+':'+pad(m)+':'+pad(s)}
+   353→   353→
+   354→   354→/* ---------- توزيع الكورسات ---------- */
+   355→   355→function courseDates(c){
+   356→   356→  const from=Math.max(1,Math.min(N,parseInt(c.from)||1)),to=Math.max(from,Math.min(N,parseInt(c.to)||N));
+   357→   357→  let ds=DAYS.slice(from-1,to);
+   358→   358→  const nr=ds.filter(d=>!isRest(d));
+   359→   359→  return nr.length?nr:ds;
+   360→   360→}
+   361→   361→function distribute(c){
+   362→   362→  S.tasks=S.tasks.filter(t=>!(t.cat===c.id&&t.gen&&!t.done));
+   363→   363→  const kept=S.tasks.filter(t=>t.cat===c.id&&t.gen).reduce((a,t)=>a+(t.qty||1),0);
+   364→   364→  const rem=c.total-kept;
+   365→   365→  if(rem<=0)return 0;
+   366→   366→  let ds=courseDates(c);
+   367→   367→  const fut=ds.filter(d=>d>=TODAY);
+   368→   368→  if(fut.length)ds=fut;
+   369→   369→  const n=ds.length;let u=kept+1;
+   370→   370→  for(let i=0;i<n;i++){
+   371→   371→    const q=Math.floor((i+1)*rem/n)-Math.floor(i*rem/n);
+   372→   372→    if(q<=0)continue;
+   373→   373→    if(q<=5){
+   374→   374→      for(let j=0;j<q;j++){S.tasks.push({id:'g'+uid(),date:ds[i],title:c.name+' · '+c.unit+' '+u+' من '+c.total,cat:c.id,qty:1,gen:true,done:false});u++}
+   375→   375→    }else{
+   376→   376→      S.tasks.push({id:'g'+uid(),date:ds[i],title:c.name+' · '+c.unit+' '+u+'–'+(u+q-1)+' من '+c.total,cat:c.id,qty:q,gen:true,done:false});u+=q;
+   377→   377→    }
+   378→   378→  }
+   379→   379→  return rem;
+   380→   380→}
+   381→   381→function courseStat(c){
+   382→   382→  const l=S.tasks.filter(t=>t.cat===c.id&&t.qty);
+   383→   383→  return{d:l.filter(t=>t.done).reduce((a,t)=>a+t.qty,0),t:l.reduce((a,t)=>a+t.qty,0)};
+   384→   384→}
+   385→   385→
+   386→   386→/* ---------- وقت المذاكرة ---------- */
+   387→   387→function splitSession(a,b){
+   388→   388→  const out=[];let s=a;
+   389→   389→  while(s<b){const d=new Date(s);const nm=new Date(d.getFullYear(),d.getMonth(),d.getDate()+1).getTime();const e=Math.min(b,nm);out.push({date:iso(d),secs:(e-s)/1000});s=e}
+   390→   390→  return out;
+   391→   391→}
+   392→   392→function runningOn(d){if(!S.timer)return 0;return splitSession(S.timer.start,Date.now()).filter(x=>x.date===d).reduce((a,x)=>a+x.secs,0)}
+   393→   393→function secsOn(d){return S.log.filter(l=>l.date===d).reduce((a,l)=>a+l.secs,0)+runningOn(d)}
+   394→   394→function totalSecs(){return DAYS.reduce((a,d)=>a+secsOn(d),0)}
+   395→   395→
+   396→   396→/* ---------- مقاييس وإنجازات ---------- */
+   397→   397→function metrics(){
+   398→   398→  const m={total:S.tasks.length,done:S.tasks.filter(t=>t.done).length};
+   399→   399→  m.pct=m.total?Math.round(m.done/m.total*100):0;
+   400→   400→  m.fullDays=DAYS.filter(dayComplete).length;
+   401→   401→  let run=0,best=0;
+   402→   402→  DAYS.forEach(d=>{if(d>TODAY)return;if(dayComplete(d)){run++;if(run>best)best=run}else if(d!==TODAY)run=0});
+   403→   403→  m.cur=run;m.best=best;
+   404→   404→  m.overdue=S.tasks.filter(t=>t.date<TODAY&&!t.done).length;
+   405→   405→  m.study=totalSecs();
+   406→   406→  m.units=S.tasks.filter(t=>t.done&&t.qty).reduce((a,t)=>a+t.qty,0);
+   407→   407→  m.courseDone=S.courses.some(c=>{const s=courseStat(c);return s.t>0&&s.d===s.t});
+   408→   408→  m.prayers=prTotal();m.pfull=prStreak();
+   409→   409→  return m;
+   410→   410→}
+   411→   411→const BADGES=[
+   412→   412→  {id:'first',n:'أول خطوة',d:'علّم أول مهمة',f:m=>m.done>=1},
+   413→   413→  {id:'day',n:'يوم كامل',d:'خلّص كل مهام يوم واحد',f:m=>m.fullDays>=1},
+   414→   414→  {id:'h1',n:'أول ساعة',d:'ذاكر ساعة بالتايمر',f:m=>m.study>=3600},
+   415→   415→  {id:'s3',n:'3 أيام ورا بعض',d:'3 أيام كاملة متتالية',f:m=>m.best>=3,when:()=>N>=3},
+   416→   416→  {id:'u10',n:'10 وحدات',d:'خلّص 10 فيديوهات أو محاضرات أو دروس',f:m=>m.units>=10},
+   417→   417→  {id:'h10',n:'10 ساعات مذاكرة',d:'مجموع وقت التايمر',f:m=>m.study>=36000},
+   418→   418→  {id:'half',n:'نص الطريق',d:'50% من مهام التحدي',f:m=>m.pct>=50},
+   419→   419→  {id:'w7',n:'7 أيام كاملة',d:'أي 7 أيام خلصت فيهم كل المهام',f:m=>m.fullDays>=7,when:()=>N>=7},
+   420→   420→  {id:'u50',n:'50 وحدة',d:'خلّص 50 وحدة من كورساتك',f:m=>m.units>=50},
+   421→   421→  {id:'h25',n:'25 ساعة مذاكرة',d:'مجموع وقت التايمر',f:m=>m.study>=90000},
+   422→   422→  {id:'course',n:'أول كورس خلص',d:'خلّص كورس كامل من كورساتك',f:m=>m.courseDone},
+   423→   423→  {id:'all',n:'التحدي كله',d:'كل مهام التحدي',f:m=>m.total>0&&m.done===m.total},
+   424→   424→  {id:'p1',n:'أول صلاة متباعة',d:'سجّل أول صلاة في متابعة الصلوات',f:m=>m.prayers>=1},
+   425→   425→  {id:'p40',n:'40 صلاة',d:'مجموع الصلوات المتباعة 40 صلاة',f:m=>m.prayers>=40},
+   426→   426→  {id:'pw7',n:'أسبوع كامل بالصلاة',d:'7 أيام متتالية صليت فيها الخمس صلوات',f:m=>m.pfull>=7}
+   427→   427→];
+   428→   428→const activeBadges=()=>BADGES.filter(b=>!b.when||b.when());
+   429→   429→const unlocked=()=>{const m=metrics();return activeBadges().filter(b=>b.f(m)).map(b=>b.id)};
+   430→   430→
+   431→   431→const GEN=[
+   432→   432→ 'أصعب حاجة البداية، وإنت بدأت. خد أول مهمة وخلّصها.',
+   433→   433→ 'الاستمرار أهم من الكمية. شوية كل يوم هيوصّلوك.',
+   434→   434→ 'كل مهمة بتعلّمها هي خطوة حقيقية ناحية هدفك.',
+   435→   435→ 'لو يومك تقيل، اعمل أصغر مهمة. أحسن من صفر.',
+   436→   436→ 'بص وراك: إنت عملت أكتر مما تتخيل.',
+   437→   437→ 'ركّز في اللي قدامك النهارده بس، وبكرة له يومه.',
+   438→   438→ 'عدّيت نص الطريق تقريبًا. إنك تكمّل أسهل من إنك تبدأ من الأول.',
+   439→   439→ 'جرّب تطبّق اللي اتعلمته بإيدك، ده اللي بيثبّت المعلومة.',
+   440→   440→ 'كل ساعة مذاكرة بتتحسب، حتى لو صغيرة.',
+   441→   441→ 'قربت جدًا. شدّ حيلك.',
+   442→   442→ 'خطوة كمان وتخلص. ركّز.',
+   443→   443→ 'آخر لفّة! جهّز نفسك لاحتفال صغير بعد ما تخلص.'
+   444→   444→];
+   445→   445→function heroMsg(m){
+   446→   446→  if(!S.courses.length&&!S.tasks.length)return 'ضيف كورساتك في تبويب «كورساتي» وأنا هقسمها على أيام التحدي.';
+   447→   447→  const idx=diff(START,TODAY);
+   448→   448→  if(TODAY<START)return 'التحدي لسه ما بدأش. جهّز الكورسات والمكان اللي هتذاكر فيه.';
+   449→   449→  if(TODAY>END)return m.total>0&&m.done===m.total?'خلصت التحدي كله. عملت حاجة كبيرة بجد.':'التحدي خلص. شوف اللي فاضل وكمّله، وكل ساعة بتتحسب.';
+   450→   450→  const ts=tasksOn(TODAY);
+   451→   451→  if(ts.length&&ts.every(t=>t.done))return 'خلصت مهام النهارده. ارتاح، واللي بتعمله كل يوم هو اللي بيوصّلك.';
+   452→   452→  if(m.overdue>0)return 'في '+m.overdue+' مهمة متأخرة. مفيش مشكلة، ابدأ بأصغر واحدة، أو اضغط «وزّع الباقي من النهارده» في تبويب كورساتي.';
+   453→   453→  return GEN[Math.min(GEN.length-1,Math.max(0,Math.floor(idx/N*GEN.length)))];
+   454→   454→}
+   455→   455→
+   456→   456→/* ---------- رسم ---------- */
+   457→   457→function ringSvg(p,track,fill){
+   458→   458→  const C=2*Math.PI*45,off=C*(1-p/100);
+   459→   459→  return '<svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="45" fill="none" stroke="'+track+'" stroke-width="9"/><circle cx="50" cy="50" r="45" fill="none" stroke="'+fill+'" stroke-width="9" stroke-linecap="round" stroke-dasharray="'+C.toFixed(1)+'" stroke-dashoffset="'+off.toFixed(1)+'"/></svg>';
+   460→   460→}
+   461→   461→const PENCIL='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>';
+   462→   462→
+   463→   463→function renderTop(){
+   464→   464→  document.getElementById('dream').textContent=S.cfg.dream?'هدفي الكبير: '+fx(S.cfg.dream):'اكتب هدفك الكبير في تبويب «كورساتي»';
+   465→   465→}
+   466→   466→function renderHero(m){
+   467→   467→  const idx=diff(START,TODAY);
+   468→   468→  let h1;
+   469→   469→  if(TODAY<START)h1='التحدي بيبدأ بعد '+(-idx)+' يوم';else if(TODAY>END)h1='التحدي خلص';else h1='اليوم '+(idx+1)+' من '+N;
+   470→   470→  document.getElementById('hero').innerHTML=
+   471→   471→   '<div class="hl"><h1 class="brand"><span dir="ltr">Challenge <em>with me</em></span></h1><div class="day">'+h1+'</div><div class="range">'+dm(START)+' – '+dm(END)+'</div><p class="msg">'+esc(heroMsg(m))+'</p></div>'+
+   472→   472→   '<div class="ring">'+ringSvg(m.pct,'var(--hero-line)','var(--gold)')+'<b>'+m.pct+'%</b></div>';
+   473→   473→}
+   474→   474→function renderStats(m){
+   475→   475→  const ts=tasksOn(clampDay(TODAY)),td=ts.filter(t=>t.done).length;
+   476→   476→  document.getElementById('stats').innerHTML=
+   477→   477→   '<div class="stat"><b>'+m.cur+'</b><span>أيام كاملة ورا بعض</span></div>'+
+   478→   478→   '<div class="stat"><b>'+td+'/'+ts.length+'</b><span>مهام النهارده</span></div>'+
+   479→   479→   '<div class="stat'+(m.overdue?' bad':'')+'"><b>'+m.overdue+'</b><span>'+(m.overdue?'مهام متأخرة':'مفيش متأخرات')+'</span></div>'+
+   480→   480→   '<div class="stat"><b data-live="today">'+fmt(secsOn(TODAY))+'</b><span>ذاكرت النهارده</span></div>'+
+   481→   481→   '<div class="stat"><b data-live="total">'+fmt(m.study)+'</b><span>إجمالي وقت المذاكرة</span></div>';
+   482→   482→}
+   483→   483→function renderTimer(){
+   484→   484→  const run=!!S.timer,cat=run?validCat(S.timer.cat):validCat(UI.tcat),tgt=S.target*60;
+   485→   485→  const now=run?(Date.now()-S.timer.start)/1000:0;
+   486→   486→  document.getElementById('timer').innerHTML=
+   487→   487→   '<div class="tl"><span class="lbl">تايمر المذاكرة</span><div class="clock'+(run?' on':'')+'" data-live="now">'+clock(now)+'</div><span class="small">'+(run?'شغّال دلوقتي، ومكمّل حتى لو قفلت الصفحة':'اختار المادة واضغط ابدأ')+'</span></div>'+
+   488→   488→   '<div class="tc"><select id="t-cat" aria-label="المادة"'+(run?' disabled':'')+'>'+catOpts(cat)+'</select><button class="btn big '+(run?'stop':'pri')+'" data-timer="toggle">'+(run?'وقّف وسجّل':'ابدأ المذاكرة')+'</button></div>'+
+   489→   489→   '<div class="tm"><div class="bar" style="--c:var(--k3)"><i data-live-bar></i></div><span class="small">النهارده <b data-live="today">'+fmt(secsOn(TODAY))+'</b> من هدف <b>'+fmt(tgt)+'</b></span></div>';
+   490→   490→  live();
+   491→   491→}
+   492→   492→function renderGoals(){
+   493→   493→  let h='';
+   494→   494→  S.courses.forEach(c=>{
+   495→   495→    const st=courseStat(c);if(!st.t)return;
+   496→   496→    h+='<div class="goal" style="--c:'+cv(c.id)+'"><div class="gt"><b>'+esc(c.name)+'</b><span class="gc">'+st.d+'/'+st.t+'</span></div><div class="bar" style="--c:'+cv(c.id)+'"><i style="width:'+Math.round(st.d/st.t*100)+'%"></i></div><span class="small">'+esc(c.unit)+' اتعمل · من يوم '+c.from+' لـ '+c.to+'</span></div>';
+   497→   497→  });
+   498→   498→  document.getElementById('goals').innerHTML=h;
+   499→   499→}
+   500→   500→
+   501→   501→function taskRow(t,full){
+   502→   502→  if(E&&E.id===t.id)return editForm(t);
+   503→   503→  return '<div class="trow" style="--c:'+cv(t.cat)+'"><label class="task"><input type="checkbox" data-t="'+escA(t.id)+'"'+(t.done?' checked':'')+'><span class="box"></span><span class="tt">'+esc(t.title)+'</span></label>'+(full?'<span class="cat">'+esc(catInfo(t.cat).n)+'</span>':'')+'<button class="ic" data-edit="'+escA(t.id)+'" aria-label="تعديل المهمة" title="تعديل">'+PENCIL+'</button></div>';
+   504→   504→}
+   505→   505→function editForm(t){
+   506→   506→  const sure=UI.confirm===t.id;
+   507→   507→  return '<form class="eform" id="editf"><input type="text" id="e-title" value="'+escA(E.title)+'" aria-label="اسم المهمة" required><select id="e-date" aria-label="اليوم">'+dateOpts(E.date)+'</select><select id="e-cat" aria-label="المادة">'+catOpts(E.cat)+'</select><button class="btn pri" type="submit">حفظ</button><button class="btn" type="button" data-cancel>إلغاء</button><button class="btn danger'+(sure?' sure':'')+'" type="button" data-del="'+escA(t.id)+'">'+(sure?'تأكيد المسح':'مسح')+'</button></form>';
+   508→   508→}
+   509→   509→function addForm(date){
+   510→   510→  D.cat=validCat(D.cat);
+   511→   511→  return '<form class="add" id="addf" data-date="'+date+'"><input type="text" id="a-title" placeholder="مهمة جديدة" value="'+escA(D.title)+'" aria-label="مهمة جديدة" required><select id="a-cat" aria-label="المادة">'+catOpts(D.cat)+'</select><button class="btn pri" type="submit">إضافة</button>'+(UI.tab==='plan'?'<button class="btn" type="button" data-cancel>إلغاء</button>':'')+'</form>';
+   512→   512→}
+   513→   513→function emptyState(){
+   514→   514→  return '<div class="card empty"><b>لسه مفيش كورسات</b><span class="sub">ضيف أول كورس (الاسم، ونوع الوحدة، وعددها) وأنا هقسمه على أيام التحدي.</span><button class="btn pri" data-tab="courses">ضيف كورس</button></div>';
+   515→   515→}
+   516→   516→
+   517→   517→function vToday(){
+   518→   518→  const d=UI.day,ts=tasksOn(d),idx=diff(START,d);
+   519→   519→  const left=ts.filter(t=>!t.done).length;
+   520→   520→  return '<div class="nav"><h2 class="grow">'+dayName(d)+' '+dm(d)+' · يوم '+(idx+1)+(isRest(d)?' · يوم راحة':'')+'</h2><button class="btn" data-nav="-1" aria-label="اليوم اللي قبله"'+(d<=START?' disabled':'')+'>→</button><button class="btn" data-nav="0">النهارده</button><button class="btn" data-nav="1" aria-label="اليوم اللي بعده"'+(d>=END?' disabled':'')+'>←</button></div>'+
+   521→   521→   (!S.courses.length&&!S.tasks.length?emptyState():
+   522→   522→   '<div class="sub">'+(ts.length?(left?'فاضل '+left+' من '+ts.length+' مهام':'خلصت كل مهام اليوم'):'مفيش مهام لليوم ده')+'</div>'+
+   523→   523→   '<div class="list">'+ts.map(t=>taskRow(t,true)).join('')+'</div>')+addForm(d);
+   524→   524→}
+   525→   525→function vPlan(){
+   526→   526→  if(!S.courses.length&&!S.tasks.length)return '<h2>الخطة كاملة</h2>'+emptyState();
+   527→   527→  let cards='';
+   528→   528→  DAYS.forEach((d,i)=>{
+   529→   529→    const ts=tasksOn(d),dn=ts.filter(t=>t.done).length,full=ts.length>0&&dn===ts.length;
+   530→   530→    let pill='';
+   531→   531→    if(full)pill='<span class="pill ok">خلص</span>';else if(d===TODAY)pill='<span class="pill now">النهارده</span>';else if(d<TODAY&&ts.length)pill='<span class="pill late">فات</span>';else if(isRest(d))pill='<span class="pill">راحة</span>';
+   532→   532→    cards+='<div class="dcard'+(d===TODAY?' today':'')+(isRest(d)?' restd':'')+'"><header><button class="dn" data-go="'+d+'"><b>يوم '+(i+1)+'</b><small>'+dayName(d)+' '+dm(d)+' · '+dn+'/'+ts.length+'</small></button>'+pill+'</header><div class="list">'+ts.map(t=>taskRow(t,false)).join('')+'</div>'+(UI.adding===d?addForm(d):'<button class="btn" data-add="'+d+'">+ مهمة</button>')+'</div>';
+   533→   533→  });
+   534→   534→  return '<h2>الأيام كلها</h2><div class="week">'+cards+'</div>';
+   535→   535→}
+   536→   536→
+   537→   537→function prevText(){
+   538→   538→  const total=Number(CF.total),from=Math.max(1,parseInt(CF.from)||1),to=Math.min(N,parseInt(CF.to)||N);
+   539→   539→  if(!(total>0)||to<from)return '';
+   540→   540→  let ds=DAYS.slice(from-1,to);const nr=ds.filter(d=>!isRest(d));if(nr.length)ds=nr;
+   541→   541→  const per=total/ds.length;
+   542→   542→  return 'حوالي '+(Math.round(per*10)/10)+' '+(CF.unit||'وحدة')+' في اليوم، على '+ds.length+' يوم';
+   543→   543→}
+   544→   544→function courseForm(){
+   545→   545→  const edit=!!CF.id;
+   546→   546→  return '<form class="card" id="cform"><h3>'+(edit?'تعديل الكورس':'ضيف كورس جديد')+'</h3><div style="height:10px"></div><div class="fgrid">'+
+   547→   547→   '<label class="f wide">اسم الكورس<input type="text" id="c-name" value="'+escA(CF.name)+'" placeholder="مثلًا: C# أو الفيزياء أو الإنجليزي" required></label>'+
+   548→   548→   '<label class="f">نوع الوحدة<input type="text" id="c-unit" list="units" value="'+escA(CF.unit)+'" required></label>'+
+   549→   549→   '<label class="f">العدد الكلي<input type="number" id="c-total" min="1" max="2000" value="'+escA(CF.total)+'" placeholder="45" required></label>'+
+   550→   550→   '<label class="f">من يوم<input type="number" id="c-from" min="1" max="'+N+'" value="'+escA(CF.from)+'" required></label>'+
+   551→   551→   '<label class="f">لحد يوم<input type="number" id="c-to" min="1" max="'+N+'" value="'+escA(CF.to||N)+'" required></label>'+
+   552→   552→   '</div><div style="height:10px"></div><div class="actions"><button class="btn pri" type="submit">'+(edit?'حفظ ووزّع الباقي':'ضيف ووزّع')+'</button>'+(edit?'<button class="btn" type="button" data-ccancel>إلغاء</button>':'')+'<span class="small" id="c-prev">'+esc(prevText())+'</span></div></form>';
+   553→   553→}
+   554→   554→function courseCard(c){
+   555→   555→  const st=courseStat(c),sure=UI.confirm==='c:'+c.id;
+   556→   556→  const days=courseDates(c).length,per=Math.round(c.total/days*10)/10;
+   557→   557→  return '<div class="card course" style="--c:'+cv(c.id)+'"><div class="cmain"><b>'+esc(c.name)+'</b><span class="small">'+c.total+' '+esc(c.unit)+' · من يوم '+c.from+' لحد يوم '+c.to+' · حوالي '+per+' في اليوم</span><div class="bar" style="--c:'+cv(c.id)+'"><i style="width:'+(st.t?Math.round(st.d/st.t*100):0)+'%"></i></div><span class="small">خلص '+st.d+' من '+st.t+' '+esc(c.unit)+'</span></div>'+
+   558→   558→   '<div class="cact"><button class="btn" data-credist="'+escA(c.id)+'">وزّع الباقي من النهارده</button><button class="btn" data-cedit="'+escA(c.id)+'">تعديل</button><button class="btn danger'+(sure?' sure':'')+'" data-cdel="'+escA(c.id)+'">'+(sure?'تأكيد المسح':'مسح')+'</button></div></div>';
+   559→   559→}
+   560→   560→function vCourses(){
+   561→   561→  if(!SF)SF={start:S.cfg.start,days:String(S.cfg.days),rest:String(S.cfg.rest),dream:S.cfg.dream||''};
+   562→   562→  const restOpts=[['-1','مفيش'],['5','الجمعة'],['6','السبت'],['0','الأحد'],['1','الاثنين'],['2','الثلاثاء'],['3','الأربعاء'],['4','الخميس']].map(o=>'<option value="'+o[0]+'"'+(o[0]===SF.rest?' selected':'')+'>'+o[1]+'</option>').join('');
+   563→   563→  const settings='<form class="card" id="setf"><h3>إعدادات التحدي</h3><div style="height:10px"></div><div class="fgrid">'+
+   564→   564→   '<label class="f">يبدأ يوم<input type="date" id="s-start" value="'+escA(SF.start)+'" required></label>'+
+   565→   565→   '<label class="f">عدد الأيام<input type="number" id="s-days" min="1" max="90" value="'+escA(SF.days)+'" required></label>'+
+   566→   566→   '<label class="f">يوم راحة أسبوعي<select id="s-rest">'+restOpts+'</select></label>'+
+   567→   567→   '<label class="f wide">هدفك الكبير<input type="text" id="s-dream" value="'+escA(SF.dream)+'" placeholder="مثلًا: أشتغل مبرمج باك إند" maxlength="80"></label>'+
+   568→   568→   '</div><div style="height:10px"></div><div class="actions"><button class="btn pri" type="submit">حفظ الإعدادات</button><span class="small">تغيير التاريخ أو عدد الأيام بيعيد توزيع الباقي من كل كورس.</span></div></form>';
+   569→   569→  const list=S.courses.map(c=>CF.id===c.id?courseForm():courseCard(c)).join('');
+   570→   570→  const reset='<div class="card"><h3>ابدأ من الأول</h3><div style="height:8px"></div><div class="actions"><button class="btn danger'+(UI.confirmReset?' sure':'')+'" data-reset>'+(UI.confirmReset?'تأكيد: امسح كل حاجة':'امسح كل الكورسات والمهام والوقت')+'</button>'+(UI.confirmReset?'<button class="btn" data-cancel>إلغاء</button>':'')+'</div></div>';
+   571→   571→  return '<h2>كورساتي</h2>'+
+   572→   572→   (S.courses.length?list:'<div class="card empty"><b>لسه مفيش كورسات</b><span class="sub">مثال: «C#» · فيديو · 45 · من يوم 1 لحد يوم 15، وأنا أوزّعها 3 في اليوم.</span></div>')+
+   573→   573→   (CF.id?'':courseForm())+settings+reset;
+   574→   574→}
+   575→   575→
+   576→   576→function vStudy(){
+   577→   577→  const tgt=S.target*60,total=totalSecs();
+   578→   578→  const elapsed=DAYS.filter(d=>d<=TODAY).length||1;
+   579→   579→  const per=DAYS.map(d=>secsOn(d));
+   580→   580→  const best=Math.max.apply(null,per);
+   581→   581→  const bi=per.indexOf(best);
+   582→   582→  const hit=DAYS.filter((d,i)=>tgt>0&&per[i]>=tgt).length;
+   583→   583→  const mx=Math.max(tgt,best,600);
+   584→   584→  const cols=DAYS.map((d,i)=>'<div class="col'+(tgt>0&&per[i]>=tgt?' hit':'')+(d>TODAY?' future':'')+'" title="يوم '+(i+1)+': '+fmt(per[i])+'"><i style="height:'+Math.round(per[i]/mx*100)+'%"></i></div>').join('');
+   585→   585→  const step=Math.ceil(N/15);
+   586→   586→  const labs=DAYS.map((d,i)=>'<span>'+(i%step===0?(i+1):'')+'</span>').join('');
+   587→   587→  const tl=tgt>0?'<div class="tgt" style="bottom:'+(tgt/mx*100)+'%"><span>هدف '+fmt(tgt)+'</span></div>':'';
+   588→   588→  const catS={};catIds().forEach(k=>catS[k]=0);
+   589→   589→  const addC=(k,s)=>{const id=catS[k]==null?'other':k;catS[id]+=s};
+   590→   590→  S.log.forEach(l=>{if(DAYS.indexOf(l.date)>=0)addC(l.cat,l.secs)});
+   591→   591→  if(S.timer){splitSession(S.timer.start,Date.now()).forEach(x=>{if(DAYS.indexOf(x.date)>=0)addC(S.timer.cat,x.secs)})}
+   592→   592→  const cm=Math.max.apply(null,Object.keys(catS).map(k=>catS[k]).concat([1]));
+   593→   593→  const catRows=Object.keys(catS).map(k=>'<div class="r"><span>'+esc(catInfo(k).n)+'</span><div class="bar" style="--c:'+cv(k)+'"><i style="width:'+Math.round(catS[k]/cm*100)+'%"></i></div><span>'+fmt(catS[k])+'</span></div>').join('');
+   594→   594→  const logs=S.log.slice().sort((a,b)=>b.date.localeCompare(a.date)||b.id.localeCompare(a.id)).slice(0,30);
+   595→   595→  const logRows=logs.length?logs.map(l=>{const sure=UI.confirm==='log:'+l.id;return '<div class="l"><span>'+dayName(l.date)+' '+dm(l.date)+'</span><span class="cat" style="--c:'+cv(l.cat)+'">'+esc(catInfo(l.cat).n)+'</span><b>'+fmt(l.secs)+'</b><button class="btn danger'+(sure?' sure':'')+'" data-dellog="'+escA(l.id)+'">'+(sure?'تأكيد':'مسح')+'</button></div>'}).join(''):'<div class="sub">لسه مفيش جلسات. شغّل التايمر أو ضيف وقت يدوي.</div>';
+   596→   596→  return '<h2>وقت المذاكرة</h2>'+
+   597→   597→   '<div class="stats"><div class="stat"><b data-live="total">'+fmt(total)+'</b><span>الإجمالي في التحدي</span></div><div class="stat"><b>'+fmt(total/elapsed)+'</b><span>متوسط اليوم</span></div><div class="stat"><b>'+(best?fmt(best):'0 د')+'</b><span>أفضل يوم'+(best?' (يوم '+(bi+1)+')':'')+'</span></div><div class="stat"><b>'+hit+'</b><span>أيام حققت الهدف</span></div></div>'+
+   598→   598→   '<div class="card"><h3>الوقت كل يوم (الأخضر = حققت الهدف)</h3><div style="height:12px"></div><div class="chart">'+tl+cols+'</div><div class="xlab">'+labs+'</div></div>'+
+   599→   599→   '<div class="card"><h3>الوقت حسب المادة</h3><div style="height:10px"></div><div class="catbars">'+catRows+'</div></div>'+
+   600→   600→   '<div class="card"><h3>هدف المذاكرة اليومي</h3><div style="height:8px"></div><div class="add"><label for="s-target">ساعات في اليوم</label><input type="number" id="s-target" min="0" max="16" step="0.5" value="'+(S.target/60)+'" style="width:90px"></div></div>'+
+   601→   601→   '<div class="card"><h3>نسيت تشغّل التايمر؟ ضيف وقت يدوي</h3><div style="height:8px"></div><form class="add" id="manf"><select id="m-date" aria-label="اليوم">'+dateOpts(M.date)+'</select><input type="number" id="m-min" min="1" max="720" value="'+escA(M.min)+'" style="width:90px" aria-label="دقائق"><span class="small">دقيقة</span><select id="m-cat" aria-label="المادة">'+catOpts(validCat(M.cat))+'</select><button class="btn pri" type="submit">إضافة الوقت</button></form></div>'+
+   602→   602→   '<div class="card"><h3>آخر الجلسات</h3><div style="height:6px"></div><div class="log">'+logRows+'</div></div>';
+   603→   603→}
+   604→   604→function vBadges(){
+   605→   605→  const m=metrics(),list=activeBadges(),on=list.filter(b=>b.f(m)).length;
+   606→   606→  return '<h2>إنجازاتي · '+on+' من '+list.length+'</h2><div class="badges">'+list.map(b=>{const u=b.f(m);return '<div class="badge '+(u?'on':'off')+'"><b>'+b.n+'</b><span>'+b.d+'</span><span class="st">'+(u?'اتفتح':'لسه مقفول')+'</span></div>'}).join('')+'</div>';
+   607→   607→}
+   608→   608→
+   609→   609→function render(){
+   610→   610→  TODAY=iso(new Date());
+   611→   611→  const m=metrics();
+   612→   612→  renderTop();renderHero(m);renderStats(m);renderTimer();renderGoals();
+   613→   613→  document.querySelectorAll('#tabs button').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.tab===UI.tab)));
+   614→   614→  document.getElementById('view').innerHTML=({today:vToday,plan:vPlan,courses:vCourses,study:vStudy,badges:vBadges})[UI.tab]();
+   615→   615→}
+   616→   616→function live(){
+   617→   617→  const run=S.timer?(Date.now()-S.timer.start)/1000:0;
+   618→   618→  document.querySelectorAll('[data-live]').forEach(el=>{
+   619→   619→    const k=el.dataset.live;
+   620→   620→    if(k==='now')el.textContent=clock(run);
+   621→   621→    else if(k==='today')el.textContent=fmt(secsOn(TODAY));
+   622→   622→    else if(k==='total')el.textContent=fmt(totalSecs());
+   623→   623→  });
+   624→   624→  const bar=document.querySelector('[data-live-bar]');
+   625→   625→  if(bar)bar.style.width=Math.min(100,S.target>0?secsOn(TODAY)/(S.target*60)*100:0)+'%';
+   626→   626→}
+   627→   627→setInterval(()=>{if(S.timer)live()},1000);
+   628→   628→
+   629→   629→let toastT=null;
+   630→   630→function toast(t){
+   631→   631→  const el=document.getElementById('toast');el.innerHTML='<div></div>';el.firstChild.textContent=fx(t);
+   632→   632→  clearTimeout(toastT);toastT=setTimeout(()=>{el.innerHTML=''},3800);
+   633→   633→}
+   634→   634→let dbDoc=null,writing=false,dirty=false,tm=null;
+   635→   635→function setSave(k){
+   636→   636→  document.getElementById('save').textContent=({acct:'محفوظ على حسابك',dev:'محفوظ على الجهاز ده بس',fail:'تعذر الحفظ على الحساب، محفوظ على الجهاز'})[k]||'';
+   637→   637→}
+   638→   638→function save(){
+   639→   639→  try{localStorage.setItem(LS,JSON.stringify(S))}catch(e){}
+   640→   640→  clearTimeout(tm);tm=setTimeout(push,600);
+   641→   641→}
+   642→   642→async function push(){
+   643→   643→  if(!dbDoc)return;
+   644→   644→  if(writing){dirty=true;return}
+   645→   645→  writing=true;
+   646→   646→  try{await dbDoc.set({cfg:S.cfg,courses:S.courses,tasks:S.tasks,log:S.log,timer:S.timer,target:S.target});setSave('acct')}catch(e){setSave('fail')}
+   647→   647→  writing=false;
+   648→   648→  if(dirty){dirty=false;push()}
+   649→   649→}
+   650→   650→function focusEl(s){setTimeout(()=>{const el=document.querySelector(s);if(el){el.focus();if(el.select)el.select()}},0)}
+   651→   651→function setTab(t){UI.tab=t;try{localStorage.setItem('planner-tab',t)}catch(e){}}
+   652→   652→
+   653→   653→function toggleTask(id,val){
+   654→   654→  const t=S.tasks.find(x=>x.id===id);if(!t)return;
+   655→   655→  const before=unlocked(),wasFull=dayComplete(t.date);
+   656→   656→  t.done=val;
+   657→   657→  save();
+   658→   658→  const after=unlocked(),msgs=[];
+   659→   659→  if(val&&!wasFull&&dayComplete(t.date))msgs.push('عاش! خلصت يوم '+(diff(START,t.date)+1));
+   660→   660→  const nb=activeBadges().filter(b=>after.indexOf(b.id)>=0&&before.indexOf(b.id)<0);
+   661→   661→  if(nb.length)msgs.push('إنجاز جديد: '+nb.map(b=>b.n).join('، '));
+   662→   662→  render();
+   663→   663→  if(msgs.length)toast(msgs.join(' · '));
+   664→   664→}
+   665→   665→function stopTimer(){
+   666→   666→  const T=S.timer;if(!T)return;
+   667→   667→  const before=unlocked(),end=Date.now();
+   668→   668→  const parts=splitSession(T.start,end).filter(x=>x.secs>=1);
+   669→   669→  const total=parts.reduce((a,x)=>a+x.secs,0);
+   670→   670→  S.timer=null;
+   671→   671→  if(total<10){save();render();toast('الجلسة قصيرة جدًا فمتسجلتش');return}
+   672→   672→  parts.forEach(x=>S.log.push({id:uid(),date:x.date,secs:Math.round(x.secs),cat:validCat(T.cat)}));
+   673→   673→  save();
+   674→   674→  const after=unlocked(),nb=activeBadges().filter(b=>after.indexOf(b.id)>=0&&before.indexOf(b.id)<0);
+   675→   675→  render();
+   676→   676→  toast('اتسجل '+fmt(total)+(nb.length?' · إنجاز جديد: '+nb.map(b=>b.n).join('، '):''));
+   677→   677→}
+   678→   678→function resetCF(){CF={id:null,name:'',unit:'فيديو',total:'',from:'1',to:''}}
+   679→   679→
+   680→   680→document.addEventListener('click',e=>{
+   681→   681→  const q=s=>e.target.closest(s);let el;
+   682→   682→  if(el=q('[data-tab]')){setTab(el.dataset.tab);UI.adding=null;E=null;UI.confirm=null;UI.confirmReset=false;if(UI.tab!=='courses'){resetCF();SF=null}render();return}
+   683→   683→  if(el=q('[data-timer]')){
+   684→   684→    if(S.timer){stopTimer()}
+   685→   685→    else{S.timer={start:Date.now(),cat:validCat(UI.tcat)};save();render();toast('بدأ التايمر. بالتوفيق!')}
+   686→   686→    return}
+   687→   687→  if(el=q('[data-edit]')){const t=S.tasks.find(x=>x.id===el.dataset.edit);if(!t)return;E={id:t.id,title:t.title,date:t.date,cat:validCat(t.cat)};UI.confirm=null;UI.adding=null;render();focusEl('#e-title');return}
+   688→   688→  if(q('[data-cancel]')){E=null;UI.adding=null;UI.confirm=null;UI.confirmReset=false;render();return}
+   689→   689→  if(el=q('[data-del]')){
+   690→   690→    const id=el.dataset.del;
+   691→   691→    if(UI.confirm===id){S.tasks=S.tasks.filter(x=>x.id!==id);E=null;UI.confirm=null;save();render();toast('اتمسحت المهمة')}
+   692→   692→    else{UI.confirm=id;render()}
+   693→   693→    return}
+   694→   694→  if(el=q('[data-dellog]')){
+   695→   695→    const k='log:'+el.dataset.dellog;
+   696→   696→    if(UI.confirm===k){S.log=S.log.filter(x=>x.id!==el.dataset.dellog);UI.confirm=null;save();render();toast('اتمسحت الجلسة')}
+   697→   697→    else{UI.confirm=k;render()}
+   698→   698→    return}
+   699→   699→  if(el=q('[data-add]')){UI.adding=el.dataset.add;E=null;D.title='';render();focusEl('#a-title');return}
+   700→   700→  if(el=q('[data-go]')){UI.day=el.dataset.go;setTab('today');UI.adding=null;E=null;render();window.scrollTo(0,0);return}
+   701→
+   702→[showing lines 1-700 of 1243; use offset=701 with limit to continue reading]
